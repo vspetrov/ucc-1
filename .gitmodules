@@ -1,0 +1,3 @@
+[submodule "src/comp/xucg"]
+	path = src/comp/xucg
+	url = https://github.com/openucx/xucg.git

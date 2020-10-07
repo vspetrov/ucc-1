@@ -42,9 +42,9 @@ ucc_status_t ucc_context_create(ucc_lib_h lib,
     ctx->n_tl_ctx = num_tls;
 
     for (i=0; i<num_tls; i++) {
-        tl_lib = config->configs[i]->tl_lib;
-        status = config->configs[i]->iface->context_create(tl_lib, params,
-                                                           config->configs[i], &tl_ctx);
+        tl_lib = config->tl_configs[i]->tl_lib;
+        status = config->tl_configs[i]->iface->context_create(tl_lib, params,
+                                                           config->tl_configs[i], &tl_ctx);
         tl_ctx->tl_lib = tl_lib;
         ctx->tl_ctx[i] = tl_ctx;
     }
@@ -92,28 +92,28 @@ ucc_status_t ucc_context_config_read(ucc_lib_info_t *lib,
         goto err_config;
     }
 
-    config->configs = (ucc_tl_context_config_t**)calloc(lib->n_libs_opened,
+    config->tl_configs = (ucc_tl_context_config_t**)calloc(lib->n_libs_opened,
                                                         sizeof(ucc_tl_context_config_t*));
-    if (config->configs == NULL) {
+    if (config->tl_configs == NULL) {
         status = UCC_ERR_NO_MEMORY;
         goto err_configs;
     }
     config->n_tl_cfg = 0;
     for(i = 0; i < lib->n_libs_opened; i++) {
         assert(NULL != lib->libs[i]->iface->tl_context_config.table);
-        config->configs[i] = (ucc_tl_context_config_t*)
+        config->tl_configs[i] = (ucc_tl_context_config_t*)
             malloc(lib->libs[i]->iface->tl_context_config.size);
-        if (!config->configs[i]) {
+        if (!config->tl_configs[i]) {
             status = UCC_ERR_NO_MEMORY;
             goto err_config_i;
         }
-        status = ucs_config_parser_fill_opts(config->configs[config->n_tl_cfg],
+        status = ucs_config_parser_fill_opts(config->tl_configs[config->n_tl_cfg],
                                              lib->libs[i]->iface->tl_context_config.table,
                                              lib->full_prefix,
                                              lib->libs[i]->iface->tl_context_config.prefix,
                                              0);
-        config->configs[config->n_tl_cfg]->iface  = lib->libs[i]->iface;
-        config->configs[config->n_tl_cfg]->tl_lib = lib->libs[i];
+        config->tl_configs[config->n_tl_cfg]->iface  = lib->libs[i]->iface;
+        config->tl_configs[config->n_tl_cfg]->tl_lib = lib->libs[i];
         config->n_tl_cfg++;
         //TODO check status
     }
@@ -123,10 +123,10 @@ ucc_status_t ucc_context_config_read(ucc_lib_info_t *lib,
 
 err_config_i:
     for(i = i - 1;i >= 0; i--) {
-        free(config->configs[i]);
+        free(config->tl_configs[i]);
     }
 err_configs:
-    free(config->configs);
+    free(config->tl_configs);
 
 err_config:
     free(config);
@@ -138,8 +138,8 @@ ucc_status_t ucc_context_config_modify(ucc_context_config_t *config,
 {
     int i;
     for(i = 0; i < config->n_tl_cfg; i++) {
-        if (config->configs[i]) {
-            ucs_config_parser_set_value(config->configs[i],
+        if (config->tl_configs[i]) {
+            ucs_config_parser_set_value(config->tl_configs[i],
                                         config->lib->libs[i]->iface->tl_context_config.table,
                                         name, value);
         }
@@ -151,13 +151,13 @@ void ucc_context_config_release(ucc_context_config_t *config)
 {
     int i;
     for(i = 0; i < config->n_tl_cfg; i++) {
-        if (!config->configs[i]) {
+        if (!config->tl_configs[i]) {
             continue;
         }
-        ucs_config_parser_release_opts(config->configs[i],
+        ucs_config_parser_release_opts(config->tl_configs[i],
                                        config->lib->libs[i]->iface->tl_context_config.table);
-        free(config->configs[i]);
+        free(config->tl_configs[i]);
     }
-    free(config->configs);
+    free(config->tl_configs);
     free(config);
 }

@@ -83,6 +83,7 @@ fi
 
 AM_CONDITIONAL([HAVE_UCX], [false])
 m4_include([m4/ucx.m4])
+m4_include([m4/ucg.m4])
 UCC_CHECK_UCX
 
 AC_MSG_RESULT([UCX support: $ucx_happy])
@@ -94,6 +95,10 @@ AC_CONFIG_FILES([
                  Makefile
                  src/Makefile
                  src/core/Makefile
+                 src/comp/Makefile
+                 src/comp/xucg/Makefile
+                 src/comp/xucg/base/Makefile
+                 src/comp/xucg/builtin/Makefile
                  src/team_lib/Makefile
                  src/team_lib/basic/Makefile
                  src/team_lib/dbg/Makefile

@@ -2,7 +2,7 @@
 # Copyright (C) Mellanox Technologies Ltd. 2001-2020.  ALL RIGHTS RESERVED.
 #
 
-SUBDIRS = core team_lib
+SUBDIRS = core team_lib comp
 
 
 lib_LTLIBRARIES  = libucc.la
