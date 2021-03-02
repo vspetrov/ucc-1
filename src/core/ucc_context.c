@@ -320,7 +320,7 @@ ucc_status_t ucc_context_create(ucc_lib_h lib,
     ctx->service_ctx   = NULL;
     ctx->ids.pool_size = config->team_ids_pool_size;
     ctx->ids.pool      = NULL;
-    ucc_list_head_init(&ctx->progress_list);
+    ucc_list_head_init(&ctx->progress_list); // TODO shouldn't the struct be also MT in case of UCC_THREAD_MULTIPLE?
     ucc_copy_context_params(&ctx->params, params);
     ucc_copy_context_params(&b_params.params, params);
     b_params.context           = ctx;
