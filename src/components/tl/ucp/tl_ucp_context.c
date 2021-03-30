@@ -100,6 +100,7 @@ UCC_CLASS_INIT_FUNC(ucc_tl_ucp_context_t,
 
     ucc_status = ucc_mpool_init(&self->req_mp, sizeof(ucc_tl_ucp_task_t),
                                 UCC_CACHE_LINE_SIZE, 8, UINT_MAX, NULL, NULL,
+                                params->thread_mode,
                                 "tl_ucp_req_mp");
     if (UCC_OK != ucc_status) {
         tl_error(self->super.super.lib,

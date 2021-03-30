@@ -19,6 +19,7 @@ UCC_CLASS_INIT_FUNC(ucc_tl_nccl_context_t,
     memcpy(&self->cfg, tl_nccl_config, sizeof(*tl_nccl_config));
     status = ucc_mpool_init(&self->req_mp, sizeof(ucc_tl_nccl_task_t),
                             UCC_CACHE_LINE_SIZE, 8, UINT_MAX, NULL, NULL,
+                            params->thread_mode,
                             "tl_nccl_req_mp");
     if (status != UCC_OK) {
         tl_error(self->super.super.lib,
