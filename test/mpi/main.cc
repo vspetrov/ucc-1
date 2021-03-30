@@ -27,6 +27,7 @@ static size_t msgrange[3] = {8, (1ULL << 21), 8};
 static std::vector<ucc_test_mpi_inplace_t> inplace = {TEST_NO_INPLACE};
 static ucc_test_mpi_root_t root_type = ROOT_RANDOM;
 static int root_value = 10;
+static ucc_thread_mode_t thread_mode = UCC_THREAD_SINGLE;
 static std::vector<std::string> str_split(const char *value, const char *delimiter)
 {
     std::vector<std::string> rst;
@@ -126,14 +127,6 @@ static ucc_memory_type_t mtype_str_to_type(std::string mtype)
         std::cerr << "incorrect memory type: " << mtype << std::endl;
         PrintHelp();
     }
-    if (UCC_MEMORY_TYPE_HOST != mem_type && UCC_OK != ucc_mc_available(mem_type)) {
-        std::cerr << "requested memory type "
-                  << ucc_memory_type_names[mem_type]
-                  << " is not supported "
-                  << std::endl;
-        exit(1);
-    }
-
     return mem_type;
 }
 
@@ -311,22 +304,23 @@ void PrintInfo()
 
 void ProcessArgs(int argc, char** argv)
 {
-    const char* const short_opts = "c:t:m:d:o:M:I:r:s:C:D:Z:h";
+    const char* const short_opts = "c:t:m:d:o:M:I:r:s:C:D:Z:Th";
     const option long_opts[] = {
-        {"colls",   required_argument, nullptr, 'c'},
-        {"teams",   required_argument, nullptr, 't'},
-        {"mtypes",  required_argument, nullptr, 'M'},
-        {"dtypes",  required_argument, nullptr, 'd'},
-        {"ops",     required_argument, nullptr, 'o'},
-        {"msgsize", required_argument, nullptr, 'm'},
-        {"inplace", required_argument, nullptr, 'I'},
-        {"root",    required_argument, nullptr, 'r'},
-        {"seed",    required_argument, nullptr, 's'},
-        {"max_size", required_argument, nullptr, 'Z'},
-        {"count_bits", required_argument, nullptr, 'C'},
-        {"displ_bits", required_argument, nullptr, 'D'},
-        {"help",    no_argument,       nullptr, 'h'},
-        {nullptr,   no_argument,       nullptr, 0}
+        {"colls",           required_argument, nullptr, 'c'},
+        {"teams",           required_argument, nullptr, 't'},
+        {"mtypes",          required_argument, nullptr, 'M'},
+        {"dtypes",          required_argument, nullptr, 'd'},
+        {"ops",             required_argument, nullptr, 'o'},
+        {"msgsize",         required_argument, nullptr, 'm'},
+        {"inplace",         required_argument, nullptr, 'I'},
+        {"root",            required_argument, nullptr, 'r'},
+        {"seed",            required_argument, nullptr, 's'},
+        {"max_size",        required_argument, nullptr, 'Z'},
+        {"count_bits",      required_argument, nullptr, 'C'},
+        {"displ_bits",      required_argument, nullptr, 'D'},
+        {"thread-multiple", no_argument,       nullptr, 'T'},
+        {"help",            no_argument,       nullptr, 'h'},
+        {nullptr,           no_argument,       nullptr, 0}
     };
 
     while (true)
@@ -374,6 +368,9 @@ void ProcessArgs(int argc, char** argv)
         case 'D':
             displs_vsize = process_arg<ucc_test_vsize_flag_t>(optarg, bits_str_to_type);
             break;
+        case 'T':
+            thread_mode = UCC_THREAD_MULTIPLE;
+            break;
         case 'h': // -h or --help
         case '?': // Unrecognized option
         default:
@@ -389,8 +386,18 @@ int main(int argc, char *argv[])
         std::chrono::steady_clock::now();
     int rank;
     int failed = 0;
-    UccTestMpi test(argc, argv, UCC_THREAD_SINGLE);
     ProcessArgs(argc, argv);
+    
+    for (auto &m : mtypes) {
+        if (UCC_MEMORY_TYPE_HOST != m && UCC_OK != ucc_mc_available(m)) {
+            std::cerr << "requested memory type "
+                      << ucc_memory_type_names[m]
+                      << " is not supported "
+                      << std::endl;
+            return 1;
+        }
+    }
+    UccTestMpi test(argc, argv, thread_mode);
     test.create_teams(teams);
     test.set_colls(colls);
     test.set_dtypes(dtypes);
