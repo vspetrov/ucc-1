@@ -84,7 +84,7 @@ ucc_status_t ucc_pq_mt_progress(ucc_progress_queue_t *pq) {
     if (task) {
         if (task->progress) {
             status = task->progress(task);
-            if (status != UCC_OK) { //todo in st its status < 0
+            if (status < 0) {
                 return status;
             }
         }
