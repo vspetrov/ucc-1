@@ -88,13 +88,15 @@ typedef struct ucc_base_team {
 } ucc_base_team_t;
 
 typedef struct ucc_coll_score ucc_coll_score_t;
+typedef ucc_status_t (*ucc_get_coll_scores_fn_t)(ucc_base_team_t *team,
+                                                 ucc_coll_score_t **score);
 typedef struct ucc_base_team_iface {
     ucc_status_t (*create_post)(ucc_base_context_t *context,
                                 const ucc_base_team_params_t *params,
                                 ucc_base_team_t **team);
     ucc_status_t (*create_test)(ucc_base_team_t *team);
     ucc_status_t (*destroy)(ucc_base_team_t *team);
-    ucc_status_t (*get_scores)(ucc_base_team_t *team, ucc_coll_score_t **score);
+    ucc_get_coll_scores_fn_t get_scores;
 } ucc_base_team_iface_t;
 
 typedef struct ucc_team ucc_team_t;
