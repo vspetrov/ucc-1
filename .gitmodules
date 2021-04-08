@@ -1,0 +1,3 @@
+[submodule "src/components/tl/ucp/coll_plugins/custom"]
+	path = src/components/tl/ucp/coll_plugins/custom
+	url = git@github.com:vspetrov/ucc_custom_ucp_plugin.git
