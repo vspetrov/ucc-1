@@ -35,6 +35,7 @@ typedef struct ucc_base_attr_t {
 
 typedef struct ucc_base_lib_params {
     ucc_lib_params_t params;
+    char            *full_prefix;
 } ucc_base_lib_params_t;
 extern ucc_config_field_t ucc_base_config_table[];
 

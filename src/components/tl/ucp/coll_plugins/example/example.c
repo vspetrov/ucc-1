@@ -13,6 +13,28 @@
 #include "coll_score/ucc_coll_score.h"
 #include "utils/ucc_math.h"
 
+ucc_tl_coll_plugin_iface_t ucc_tlcp_ucp_example;
+
+typedef struct ucc_tlcp_ucp_example_config {
+    char *score_str;
+} ucc_tlcp_ucp_example_config_t;
+
+#define CONFIG(_lib) ((ucc_tlcp_ucp_example_config_t*)((_lib)->tlcp_configs[ucc_tlcp_ucp_example.id]))
+
+static ucc_config_field_t ucc_tlcp_ucp_example_table[] = {
+    {"TLCP_EXAMPLE_SCORE", "", "Collective score modifier for a CL/TL component\n"
+     "format: \"#\"-separated list of score values with optional qualifiers:\n"
+     "        <coll_type_1,..,coll_type_n>:<mem_type_1,..,mem_type_n>:"
+     "<msg_range_1,..,msg_range_n>:score\n"
+     "        msg_range has the format: start-end, where start,end - integers"
+     " or \"inf\"\n"
+     "        score: positive integer, 0 or inf; \n"
+     "               0 - disables the CL/TL in the given range for a given coll\n"
+     "               inf - forces the CL/TL in the given range for a given coll",
+     ucc_offsetof(ucc_tlcp_ucp_example_config_t, score_str), UCC_CONFIG_TYPE_STRING},
+
+    {NULL}};
+
 #define UCC_TLCP_UCP_EXAMPLE_SCORE 100
 ucc_status_t ucc_tlcp_ucp_example_progress(ucc_coll_task_t *coll_task)
 {
@@ -58,8 +80,9 @@ ucc_status_t ucc_tlcp_ucp_example_coll_init(ucc_base_coll_args_t *coll_args,
 ucc_status_t ucc_tlcp_ucp_example_get_scores(ucc_base_team_t   *tl_team,
                                               ucc_coll_score_t **score_p)
 {
-//    ucc_tl_ucp_team_t *team = ucc_derived_of(tl_team, ucc_tl_ucp_team_t);
-//    ucc_tl_ucp_lib_t  *lib  = UCC_TL_UCP_TEAM_LIB(team);
+    ucc_tl_ucp_team_t *team = ucc_derived_of(tl_team, ucc_tl_ucp_team_t);
+    ucc_tl_ucp_lib_t  *lib  = UCC_TL_UCP_TEAM_LIB(team);
+    const char        *score_str;
     ucc_coll_score_t  *score;
     ucc_status_t       status;
     /* There can be a different logic for different coll_type/mem_type.
@@ -76,15 +99,15 @@ ucc_status_t ucc_tlcp_ucp_example_get_scores(ucc_base_team_t   *tl_team,
         printf("failed to add range\n");
         return status;
     }
-
-    /* if (strlen(lib->super.super.score_str) > 0) { */
-    /*     status = ucc_coll_score_update_from_str(lib->super.super.score_str, */
-    /*                                             score, team->size); */
-    /*     if (status == UCC_ERR_INVALID_PARAM) { */
-    /*         /\* User provided incorrect input - try to proceed *\/ */
-    /*         status = UCC_OK; */
-    /*     } */
-    /* } */
+    score_str = CONFIG(lib)->score_str;
+    if (strlen(score_str) > 0) {
+        status = ucc_coll_score_update_from_str(score_str,
+                                                score, team->size);
+        if (status == UCC_ERR_INVALID_PARAM) {
+            /* User provided incorrect input - try to proceed */
+            status = UCC_OK;
+        }
+    }
     *score_p = score;
     return status;
 }
@@ -92,5 +115,7 @@ ucc_status_t ucc_tlcp_ucp_example_get_scores(ucc_base_team_t   *tl_team,
 ucc_tl_coll_plugin_iface_t ucc_tlcp_ucp_example = {
     .super.name = "tl_ucp_example",
     .super.score = UCC_TLCP_UCP_EXAMPLE_SCORE,
+    .config.table = ucc_tlcp_ucp_example_table,
+    .config.size  = sizeof(ucc_tlcp_ucp_example_config_t),
     .get_scores = ucc_tlcp_ucp_example_get_scores
 };

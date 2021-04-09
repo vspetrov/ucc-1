@@ -66,8 +66,10 @@ typedef struct ucc_tl_service_coll {
 } ucc_tl_service_coll_t;
 
 typedef struct ucc_tl_coll_plugin_iface {
-    ucc_component_iface_t    super;
-    ucc_get_coll_scores_fn_t get_scores;
+    ucc_component_iface_t          super;
+    ucs_config_global_list_entry_t config;
+    ucc_get_coll_scores_fn_t       get_scores;
+    uint32_t                       id;
 } ucc_tl_coll_plugin_iface_t;
 
 typedef struct ucc_tl_iface {
