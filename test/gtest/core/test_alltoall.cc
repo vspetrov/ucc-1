@@ -167,7 +167,7 @@ UCC_TEST_P(test_alltoall_1, multiple)
     std::vector<UccReq>        reqs;
     std::vector<UccCollCtxVec> ctxs;
 
-    for (int tid = 0; tid < UccJob::nStaticTeams; tid++) {
+    for (int tid = 0; tid < 1; tid++) {
         UccTeam_h       team = UccJob::getStaticTeams()[tid];
         int             size = team->procs.size();
         UccCollCtxVec   ctx;

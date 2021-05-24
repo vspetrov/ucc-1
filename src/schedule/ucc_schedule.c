@@ -28,6 +28,7 @@ ucc_status_t ucc_coll_task_init(ucc_coll_task_t *task)
     task->ee             = NULL;
     task->flags          = 0;
     ucc_lf_queue_init_elem(&task->lf_elem);
+    task->n_deps         = 0;
     return ucc_event_manager_init(&task->em);
 }
 
@@ -57,6 +58,7 @@ ucc_schedule_completed_handler(ucc_coll_task_t *parent_task, //NOLINT
     self->n_completed_tasks += 1;
     if (self->n_completed_tasks == self->n_tasks) {
         self->super.super.status = UCC_OK;
+        ucc_event_manager_notify(&self->super, UCC_EVENT_COMPLETED);
     }
     return UCC_OK;
 }
