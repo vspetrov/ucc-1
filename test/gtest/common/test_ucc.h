@@ -147,9 +147,9 @@ class UccJob {
     static UccJob* staticUccJob;
     static std::vector<UccTeam_h> staticTeams;
 public:
-    static const int nStaticTeams     = 3;
-    static const int staticUccJobSize = 16;
-    static constexpr int staticTeamSizes[nStaticTeams] = {2, 11, 16};
+    static const int nStaticTeams     = 1;
+    static const int staticUccJobSize = 2;
+    static constexpr int staticTeamSizes[nStaticTeams] = {2};
     static void cleanup();
     static UccJob* getStaticJob();
     static const std::vector<UccTeam_h> &getStaticTeams();

@@ -9,7 +9,6 @@
 #include "utils/ucc_list.h"
 #include "utils/ucc_log.h"
 #include "utils/ucc_lock_free_queue.h"
-
 #define MAX_LISTENERS 4
 
 typedef enum {
@@ -60,6 +59,9 @@ typedef struct ucc_coll_task {
         /* used for lf mt progress queue */
         ucc_lf_queue_elem_t          lf_elem;
     };
+    uint8_t                      n_deps;
+    uint8_t                      n_deps_satisfied;
+    uint8_t                      n_deps_orig;
 } ucc_coll_task_t;
 
 #define UCC_SCHEDULE_MAX_TASKS 8
@@ -82,6 +84,7 @@ ucc_status_t ucc_event_manager_notify(ucc_coll_task_t *parent_task,
 ucc_status_t ucc_schedule_init(ucc_schedule_t *schedule, ucc_context_t *ctx);
 void ucc_schedule_add_task(ucc_schedule_t *schedule, ucc_coll_task_t *task);
 ucc_status_t ucc_schedule_start(ucc_schedule_t *schedule);
+
 ucc_status_t ucc_task_start_handler(ucc_coll_task_t *parent,
                                     ucc_coll_task_t *task);
 ucc_status_t ucc_schedule_finalize(ucc_coll_task_t *schedule_task);

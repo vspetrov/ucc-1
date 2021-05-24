@@ -37,6 +37,7 @@ ucc_status_t ucc_coll_task_init(ucc_coll_task_t *task)
     task->ee             = NULL;
     task->flags          = 0;
     ucc_lf_queue_init_elem(&task->lf_elem);
+    task->n_deps         = 0;
     return ucc_event_manager_init(&task->em);
 }
 
