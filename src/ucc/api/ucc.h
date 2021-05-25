@@ -132,19 +132,19 @@ BEGIN_C_DECLS
  *
  */
 typedef enum {
-    UCC_OP_USERDEFINED      = UCC_BIT(0), /*!< User defined reduction operation */
-    UCC_OP_SUM              = UCC_BIT(1), /*!< Predefined addition operation */
-    UCC_OP_PROD             = UCC_BIT(2),
-    UCC_OP_MAX              = UCC_BIT(3),
-    UCC_OP_MIN              = UCC_BIT(4),
-    UCC_OP_LAND             = UCC_BIT(5),
-    UCC_OP_LOR              = UCC_BIT(6),
-    UCC_OP_LXOR             = UCC_BIT(7),
-    UCC_OP_BAND             = UCC_BIT(8),
-    UCC_OP_BOR              = UCC_BIT(9),
-    UCC_OP_BXOR             = UCC_BIT(10),
-    UCC_OP_MAXLOC           = UCC_BIT(11),
-    UCC_OP_MINLOC           = UCC_BIT(12)
+    UCC_OP_SUM, /*!< Predefined addition operation */
+    UCC_OP_PROD,
+    UCC_OP_MAX,
+    UCC_OP_MIN,
+    UCC_OP_LAND,
+    UCC_OP_LOR,
+    UCC_OP_LXOR,
+    UCC_OP_BAND,
+    UCC_OP_BOR,
+    UCC_OP_BXOR,
+    UCC_OP_MAXLOC,
+    UCC_OP_MINLOC,
+    UCC_OP_USERDEFINED /*!< User defined reduction operation */
 } ucc_reduction_op_t;
 
 /**
