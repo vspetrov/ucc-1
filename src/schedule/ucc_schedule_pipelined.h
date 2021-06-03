@@ -30,6 +30,7 @@ typedef struct ucc_schedule_pipelined {
     ucc_schedule_frag_t* frags[UCC_SCHEDULE_PIPELINED_MAX_FRAGS];
     int            n_frags;
     int            n_frags_started;
+    int            n_frags_in_pipeline;
     ucc_schedule_frag_finalize_fn_t frag_finalize;
     ucc_schedule_frag_setup_fn_t frag_setup;
     ucc_base_coll_args_t args;
@@ -46,7 +47,7 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
                                          int n_frags_total,
                                          ucc_schedule_pipelined_t **schedule_p);
 
-ucc_status_t ucc_coll_task_init_dependent(ucc_coll_task_t *task);
+ucc_status_t ucc_coll_task_init_dependent(ucc_coll_task_t *task, int n_deps);
 ucc_status_t ucc_schedule_frag_init(ucc_schedule_frag_t *schedule, ucc_context_t *ctx);
 void ucc_schedule_frag_add_task(ucc_schedule_frag_t *schedule, ucc_coll_task_t *task);
 

@@ -177,6 +177,7 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_knomial_start(ucc_coll_task_t *coll_task)
     ucc_status_t       status;
     task->super.super.status = UCC_INPROGRESS;
 
+    ucc_knomial_pattern_init(team->size, team->rank, task->reduce_scatter_kn.p.radix, &task->reduce_scatter_kn.p);
     status = ucc_tl_ucp_reduce_scatter_knomial_progress(&task->super);
     if (UCC_INPROGRESS == status) {
         ucc_progress_enqueue(UCC_TL_UCP_TEAM_CORE_CTX(team)->pq, &task->super);

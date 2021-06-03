@@ -12,8 +12,7 @@ ucc_status_t ucc_frag_start_handler(ucc_coll_task_t *parent, /* NOLINT */
     ucc_schedule_frag_t *frag = ucc_derived_of(task, ucc_schedule_frag_t);
     ucc_status_t status;
     if(schedule->frag_setup) {
-        status = schedule->frag_setup(schedule, frag, schedule->super.n_completed_tasks +
-                                      schedule->n_frags_started);
+        status = schedule->frag_setup(schedule, frag, schedule->n_frags_started);
         if (UCC_OK != status) {
             ucc_error("failed to setup fragment %d of pipelined schedule",
                       schedule->n_frags_started);
@@ -46,15 +45,18 @@ ucc_schedule_pipelined_completed_handler(ucc_coll_task_t *parent_task, //NOLINT
                                          ucc_coll_task_t *task)
 {
     ucc_schedule_pipelined_t *self = ucc_container_of(task, ucc_schedule_pipelined_t, super);
+    ucc_schedule_frag_t *frag = ucc_derived_of(parent_task, ucc_schedule_frag_t);
+
     self->super.n_completed_tasks += 1;
-    self->n_frags_started--;
+    self->n_frags_in_pipeline--;
+    /* printf("completed frag %p, n_completed %d, n_started %d, n_total %d\n", */
+           /* frag, self->super.n_completed_tasks, self->n_frags_started, self->super.n_tasks); */
     if (self->super.n_completed_tasks == self->super.n_tasks) {
         self->super.super.super.status = UCC_OK;
         ucc_event_manager_notify(&self->super.super, UCC_EVENT_COMPLETED);
-    } else if (self->super.n_completed_tasks + self->n_frags_started <
+    } else if (self->super.n_completed_tasks + self->n_frags_in_pipeline <
                self->super.n_tasks){
         /* need to post more frags*/
-        ucc_schedule_frag_t *frag = ucc_derived_of(parent_task, ucc_schedule_frag_t);
         int i;
         ucc_assert(frag == self->frags[0]);
         for (i = 1; i < self->n_frags; i++) {
@@ -67,6 +69,7 @@ ucc_schedule_pipelined_completed_handler(ucc_coll_task_t *parent_task, //NOLINT
             frag->tasks[i]->n_deps += frag->tasks[i]->n_deps_orig;
             frag->tasks[i]->super.status = UCC_OPERATION_INITIALIZED;
         }
+        self->n_frags_in_pipeline++;
         ucc_frag_start_handler(&self->super.super, &frag->super.super);
     }
     return UCC_OK;
@@ -77,6 +80,7 @@ static ucc_status_t ucc_schedule_pipelined_finalize(ucc_coll_task_t *task)
     int i, j;
     ucc_schedule_pipelined_t *schedule_p = ucc_derived_of(task, ucc_schedule_pipelined_t);
     ucc_schedule_frag_t **frags = schedule_p->frags;
+    /* printf("schedule pipelined %p is complete\n", schedule_p); */
 
     for (i = 0; i < schedule_p->n_frags; i++) {
         for (j = 0; j < frags[i]->super.n_tasks; j++) {
@@ -85,6 +89,7 @@ static ucc_status_t ucc_schedule_pipelined_finalize(ucc_coll_task_t *task)
         schedule_p->frag_finalize(frags[i]);
     }
     ucc_free(schedule_p);
+
     return UCC_OK;
 }
 
@@ -93,6 +98,7 @@ static ucc_status_t ucc_schedule_pipelined_post(ucc_coll_task_t *task)
     int i, j;
     ucc_schedule_pipelined_t *schedule_p = ucc_derived_of(task, ucc_schedule_pipelined_t);
     ucc_schedule_frag_t **frags = schedule_p->frags;
+
     schedule_p->super.super.super.status = UCC_OPERATION_INITIALIZED;
     schedule_p->super.n_completed_tasks = 0;
     schedule_p->n_frags_started         = 0;
@@ -169,7 +175,10 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
                                     &frags[i]->super.super);
         ucc_event_manager_subscribe(&frags[i]->super.super.em, UCC_EVENT_COMPLETED,
                                     &schedule->super.super);
+
+        /* printf("frag %p = [ %p %p ]\n", frags[i], frags[i]->tasks[0], frags[i]->tasks[1]); */
     }
+    schedule->n_frags_in_pipeline = n_frags;
     *schedule_p = schedule;
     return UCC_OK;
 err:
@@ -183,17 +192,21 @@ ucc_status_t ucc_dependency_handler(ucc_coll_task_t *parent, /* NOLINT */
                                     ucc_coll_task_t *task)
 {
     task->n_deps_satisfied++;
+    /* printf("task %p, n_deps %d, satisfied %d\n", */
+           /* task, task->n_deps, task->n_deps_satisfied); */
     if (task->n_deps == task->n_deps_satisfied) {
         return task->post(task);
     }
     return UCC_OK;
 }
 
-ucc_status_t ucc_coll_task_init_dependent(ucc_coll_task_t *task)
+ucc_status_t ucc_coll_task_init_dependent(ucc_coll_task_t *task, int n_deps)
 {
     ucc_coll_task_init(task);
     task->handlers[UCC_EVENT_COMPLETED] = ucc_dependency_handler;
     task->handlers[UCC_EVENT_SCHEDULE_STARTED] = ucc_dependency_handler;
     task->n_deps_satisfied = 0;
+    task->n_deps           = n_deps;
     return UCC_OK;
 }
+

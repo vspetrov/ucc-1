@@ -65,6 +65,28 @@ static ucc_config_field_t ucc_tl_ucp_lib_config_table[] = {
      ucc_offsetof(ucc_tl_ucp_lib_config_t, bcast_kn_radix),
      UCC_CONFIG_TYPE_UINT},
 
+    {"ALLREDUCE_SRA_KN_FRAG_THRESH", "inf",
+     "Threshold to enable fragmentation and pipelining of SRA Knomial allreduce alg",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_kn_frag_thresh),
+     UCC_CONFIG_TYPE_MEMUNITS},
+
+    {"ALLREDUCE_SRA_KN_FRAG_SIZE", "inf",
+     "Maximum allowed fragment size of sra knomial algorithm",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_kn_frag_size),
+     UCC_CONFIG_TYPE_MEMUNITS},
+
+    {"ALLREDUCE_SRA_KN_N_FRAGS", "2",
+     "Number of fragments each allreduce is split into when sra knomial alg is used\n"
+     "The actual number of fragments can be larger if fragment size exceeds\n"
+     "ALLREDUCE_SRA_KN_FRAG_SIZE",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_kn_n_frags),
+     UCC_CONFIG_TYPE_UINT},
+
+    {"ALLREDUCE_SRA_KN_PIPELINE_DEPTH", "2",
+     "Number of fragments simultaneously progressed by the sra knomial alg",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_kn_pipeline_depth),
+     UCC_CONFIG_TYPE_UINT},
+
     {NULL}};
 
 static ucs_config_field_t ucc_tl_ucp_context_config_table[] = {
