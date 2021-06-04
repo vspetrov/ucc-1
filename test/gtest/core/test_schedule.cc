@@ -82,7 +82,7 @@ UCC_TEST_F(test_schedule, basic)
 {
     ucc_schedule_pipelined_t *schedule_p;
     ucc_schedule_pipelined_init(NULL, NULL, __test_init_frag, __test_fini_frag,
-                                __test_setup_frag, 2, 8, &schedule_p);
+                                __test_setup_frag, 1, 2, &schedule_p);
 
     ASSERT_EQ(UCC_OK, ucc_collective_post(&schedule_p->super.super.super));
     while (UCC_OK != schedule_p->super.super.super.status) {
