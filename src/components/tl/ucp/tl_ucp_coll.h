@@ -27,6 +27,7 @@ typedef struct ucc_tl_ucp_task {
     uint32_t             tag;
     uint32_t             n_polls;
     ucc_tl_team_subset_t subset;
+    void                *reduce_req;
     union {
         struct {
             int                   phase;
@@ -69,6 +70,7 @@ static inline ucc_tl_ucp_task_t *ucc_tl_ucp_get_task(ucc_tl_ucp_team_t *team)
     task->subset.map.type    = UCC_EP_MAP_FULL;
     task->subset.map.ep_num  = team->size;
     task->subset.myrank      = team->rank;
+    task->reduce_req         = NULL;
     return task;
 }
 

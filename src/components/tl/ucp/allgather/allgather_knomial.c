@@ -114,7 +114,7 @@ UCC_KN_PHASE_PROXY:
         SAVE_STATE(UCC_KN_PHASE_PROXY);
         return task->super.super.status;
     }
-
+UCC_KN_PHASE_REDUCE:
 out:
     task->super.super.status = UCC_OK;
     return task->super.super.status;

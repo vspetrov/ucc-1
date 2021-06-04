@@ -480,6 +480,19 @@ ucc_status_t ucc_ee_cuda_event_test(void *event)
     return cuda_error_to_ucc_status(cu_err);
 }
 
+ucc_status_t ucc_mc_cuda_reduce_multi(const void *src1, const void *src2,
+                                         void *dst, size_t size, size_t count,
+                                         size_t stride, ucc_datatype_t dt,
+                                         ucc_reduction_op_t op)
+{
+    return ucc_mc_cuda_reduce_multi_nb(src1, src2, dst,
+                                       size, count, stride, dt, op, NULL);
+}
+
+static ucc_status_t ucc_mc_cuda_reduce_req_free(void* req) {
+    return UCC_OK;
+}
+
 ucc_mc_cuda_t ucc_mc_cuda = {
     .super.super.name       = "cuda mc",
     .super.ref_cnt          = 0,
@@ -492,6 +505,9 @@ ucc_mc_cuda_t ucc_mc_cuda = {
     .super.ops.mem_free     = ucc_mc_cuda_mem_free,
     .super.ops.reduce       = ucc_mc_cuda_reduce,
     .super.ops.reduce_multi = ucc_mc_cuda_reduce_multi,
+    .super.ops.reduce_multi_nb = ucc_mc_cuda_reduce_multi_nb,
+    .super.ops.reduce_req_test = ucc_ee_cuda_event_test,
+    .super.ops.reduce_req_free = ucc_ee_cuda_destroy_event,    
     .super.ops.memcpy       = ucc_mc_cuda_memcpy,
     .super.config_table =
         {

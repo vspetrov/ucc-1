@@ -174,6 +174,22 @@ ucc_status_t ucc_ee_cpu_event_test(void *event) //NOLINT
     return UCC_OK;
 }
 
+static ucc_status_t ucc_mc_cpu_reduce_multi_nb(const void *src1, const void *src2,
+                                            void *dst, size_t size,
+                                            size_t count, size_t stride,
+                                            ucc_datatype_t dt,
+                                            ucc_reduction_op_t op, void **req)
+{
+    return ucc_mc_cpu_reduce_multi(src1, src2, dst, size, count, stride, dt, op);
+}
+
+static ucc_status_t ucc_mc_cpu_reduce_req_test(void* req) {
+    return UCC_OK;
+}
+
+static ucc_status_t ucc_mc_cpu_reduce_req_free(void* req) {
+    return UCC_OK;
+}
 
 ucc_mc_cpu_t ucc_mc_cpu = {
     .super.super.name       = "cpu mc",
@@ -187,6 +203,9 @@ ucc_mc_cpu_t ucc_mc_cpu = {
     .super.ops.mem_free     = ucc_mc_cpu_mem_free,
     .super.ops.reduce       = ucc_mc_cpu_reduce,
     .super.ops.reduce_multi = ucc_mc_cpu_reduce_multi,
+    .super.ops.reduce_multi_nb = ucc_mc_cpu_reduce_multi_nb,
+    .super.ops.reduce_req_test = ucc_mc_cpu_reduce_req_test,
+    .super.ops.reduce_req_free = ucc_mc_cpu_reduce_req_free,    
     .super.ops.memcpy       = ucc_mc_cpu_memcpy,
     .super.config_table     =
         {

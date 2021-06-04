@@ -137,6 +137,7 @@ UCC_KN_PHASE_EXTRA:
                 return status;
             }
         }
+UCC_KN_PHASE_REDUCE:        
         ucc_knomial_pattern_next_iteration(p);
     }
     if (KN_NODE_PROXY == node_type) {

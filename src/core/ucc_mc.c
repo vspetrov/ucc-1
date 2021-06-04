@@ -163,6 +163,31 @@ ucc_status_t ucc_mc_reduce_multi(void *src1, void *src2, void *dst,
                                           dtype, op);
 }
 
+ucc_status_t ucc_mc_reduce_multi_nb(void *src1, void *src2, void *dst,
+                                 size_t size, size_t count, size_t stride,
+                                 ucc_datatype_t dtype, ucc_reduction_op_t op,
+                                    ucc_memory_type_t mem_type, void **req)
+{
+    if (count == 0) {
+        return UCC_OK;
+    }
+    UCC_CHECK_MC_AVAILABLE(mem_type);
+    return mc_ops[mem_type]->reduce_multi_nb(src1, src2, dst, size, count, stride,
+                                             dtype, op, req);
+}
+
+ucc_status_t ucc_mc_reduce_req_test(void *req, ucc_memory_type_t mem_type)
+{
+    UCC_CHECK_MC_AVAILABLE(mem_type);
+    return mc_ops[mem_type]->reduce_req_test(req);
+}
+
+ucc_status_t ucc_mc_reduce_req_free(void *req, ucc_memory_type_t mem_type)
+{
+    UCC_CHECK_MC_AVAILABLE(mem_type);
+    return mc_ops[mem_type]->reduce_req_free(req);
+}
+
 ucc_status_t ucc_mc_free(void *ptr, ucc_memory_type_t mem_type)
 {
     UCC_CHECK_MC_AVAILABLE(mem_type);

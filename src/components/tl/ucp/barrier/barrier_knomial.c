@@ -93,6 +93,7 @@ UCC_KN_PHASE_PROXY:
         return UCC_INPROGRESS;
     }
 
+UCC_KN_PHASE_REDUCE:
 completion:
     ucc_assert(UCC_TL_UCP_TASK_P2P_COMPLETE(task));
     task->super.super.status = UCC_OK;
