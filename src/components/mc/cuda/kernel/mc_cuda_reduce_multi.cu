@@ -179,10 +179,11 @@ ucc_status_t ucc_mc_cuda_reduce_multi_nb(const void *src1, const void *src2,
             return UCC_ERR_NOT_SUPPORTED;
     }
     CUDACHECK(cudaGetLastError());
-    ucc_mc_cuda_event_t *cuda_event = ucc_mpool_get(&ucc_mc_cuda.events);
-    ucc_assert(cuda_event);
-    CUDACHECK(cudaEventRecord(cuda_event->event, stream));
+
     if (req) {
+        ucc_mc_cuda_event_t *cuda_event = (ucc_mc_cuda_event_t*)ucc_mpool_get(&ucc_mc_cuda.events);
+        ucc_assert(cuda_event);
+        CUDACHECK(cudaEventRecord(cuda_event->event, stream));
         *req = (void*)cuda_event;
     } else {
         CUDACHECK(cudaStreamSynchronize(stream));

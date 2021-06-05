@@ -489,9 +489,6 @@ ucc_status_t ucc_mc_cuda_reduce_multi(const void *src1, const void *src2,
                                        size, count, stride, dt, op, NULL);
 }
 
-static ucc_status_t ucc_mc_cuda_reduce_req_free(void* req) {
-    return UCC_OK;
-}
 
 ucc_mc_cuda_t ucc_mc_cuda = {
     .super.super.name       = "cuda mc",
