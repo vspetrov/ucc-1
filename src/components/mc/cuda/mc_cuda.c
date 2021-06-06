@@ -51,6 +51,11 @@ static ucc_config_field_t ucc_mc_cuda_config_table[] = {
      ucc_offsetof(ucc_mc_cuda_config_t, stream_blocking_wait),
      UCC_CONFIG_TYPE_UINT},
 
+    {"REDUCE_NB", "0",
+     "Enable/disable non blocking reduction interface",
+     ucc_offsetof(ucc_mc_cuda_config_t, reduce_nb),
+     UCC_CONFIG_TYPE_INT},
+
     {NULL}
 };
 

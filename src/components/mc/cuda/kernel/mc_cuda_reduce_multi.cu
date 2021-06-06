@@ -180,7 +180,7 @@ ucc_status_t ucc_mc_cuda_reduce_multi_nb(const void *src1, const void *src2,
     }
     CUDACHECK(cudaGetLastError());
 
-    if (req) {
+    if (req && MC_CUDA_CONFIG->reduce_nb) {
         ucc_mc_cuda_event_t *cuda_event = (ucc_mc_cuda_event_t*)ucc_mpool_get(&ucc_mc_cuda.events);
         ucc_assert(cuda_event);
         CUDACHECK(cudaEventRecord(cuda_event->event, stream));

@@ -56,6 +56,7 @@ typedef struct ucc_mc_cuda_config {
     ucc_mc_cuda_strm_task_mode_t   strm_task_mode;
     ucc_mc_cuda_task_stream_type_t task_strm_type;
     int                            stream_blocking_wait;
+    int                            reduce_nb;
 } ucc_mc_cuda_config_t;
 
 typedef struct ucc_mc_cuda {
