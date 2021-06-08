@@ -89,6 +89,7 @@ void         ucc_context_progress_deregister(ucc_context_t *ctx,
    each component can extract its own addressing using offset into data.
    Offset is found by id. */
 typedef struct ucc_context_addr_header {
+    ucc_context_id_t  ctx_id;
     int n_components; // Number of CL/TL components whose address is packed
     struct {
         unsigned long id;     // id of component computed during framework load

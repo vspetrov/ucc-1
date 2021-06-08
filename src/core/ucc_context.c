@@ -634,6 +634,7 @@ ucc_status_t ucc_context_get_attr(ucc_context_t      *context,
                           context->attr.ctx_addr_len);
                 return UCC_ERR_NO_MEMORY;
             }
+            h->ctx_id       = context->id;
             h->n_components = context->n_addr_packed;
             status          = ucc_context_pack_addr(context, NULL, NULL, h);
             if (UCC_OK != status) {

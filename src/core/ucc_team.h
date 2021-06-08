@@ -9,6 +9,7 @@
 #include "ucc/api/ucc.h"
 #include "utils/ucc_datastruct.h"
 #include "ucc_context.h"
+#include "utils/ucc_math.h"
 
 typedef struct ucc_context ucc_context_t;
 typedef struct ucc_cl_team ucc_cl_team_t;
@@ -44,4 +45,27 @@ typedef struct ucc_team {
 #define UCC_TEAM_ID_MAX ((uint16_t)UCC_BIT(15) - 1)
 
 void ucc_copy_team_params(ucc_team_params_t *dst, const ucc_team_params_t *src);
+
+static inline ucc_context_addr_header_t*
+ucc_get_team_ep_header(ucc_context_t *context, ucc_team_t *team, ucc_rank_t rank)
+{
+    return (ucc_context_addr_header_t*)
+        PTR_OFFSET(team->addr_storage.storage, team->addr_storage.addr_len * rank);
+}
+
+static inline void*
+ucc_get_team_ep_addr(ucc_context_t *context, ucc_team_t *team, ucc_rank_t rank,
+                     unsigned long component_id)
+{
+    ucc_context_addr_header_t *h = ucc_get_team_ep_header(context, team, rank);
+    int i;
+    for (i = 0; i < h->n_components; i++) {
+        if (h->components[i].id == component_id) {
+            return PTR_OFFSET(h, h->components[i].offset);
+        }
+    }
+    ucc_assert(0);
+    return NULL;
+}
+
 #endif

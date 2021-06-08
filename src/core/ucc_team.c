@@ -114,14 +114,16 @@ ucc_status_t ucc_team_create_post(ucc_context_h *contexts, uint32_t num_contexts
                   sizeof(ucc_team_t));
         return UCC_ERR_NO_MEMORY;
     }
+
     team->n_cl_teams            = 0;
     team->num_contexts          = num_contexts;
     team->service_team          = NULL;
     team->task                  = NULL;
     team->id                    = 0;
-    team->size                  = 0;
+    team->size                  = team_size;
     team->addr_storage.addr_len = 0;
     team->addr_storage.oob_req  = NULL;
+    team->addr_storage.storage  = NULL;
     team->contexts              =
         ucc_malloc(sizeof(ucc_context_t *) * num_contexts, "ucc_team_ctx");
     if (!team->contexts) {
@@ -166,6 +168,7 @@ ucc_team_create_service_team(ucc_context_t *context, ucc_team_t *team)
         b_params.scope    = UCC_CL_LAST + 1; // CORE scopre id - never overlaps with CL type
         b_params.scope_id = 0;
         b_params.id       = 0;
+        b_params.team     = team;
         status = UCC_TL_CTX_IFACE(context->service_ctx)
             ->team.create_post(&context->service_ctx->super, &b_params, &b_team);
         if (UCC_OK != status) {
@@ -206,6 +209,7 @@ ucc_team_create_cls(ucc_context_t *context, ucc_team_t *team)
     memcpy(&b_params.params, &team->params, sizeof(ucc_team_params_t));
     b_params.rank = team->rank;
     b_params.id   = team->id;
+    b_params.team = team;
     for (i = team->last_team_create_posted + 1; i < context->n_cl_ctx; i++) {
         cl_iface = UCC_CL_CTX_IFACE(context->cl_ctx[i]);
         status   = cl_iface->team.create_post(&context->cl_ctx[i]->super,
@@ -258,7 +262,6 @@ ucc_team_addr_exchange(ucc_context_t *context, ucc_team_t *team)
         oob.req_free(team->addr_storage.oob_req);
         team->addr_storage.oob_req = NULL;
     }
-
     if (0 == team->addr_storage.addr_len) {
         if (NULL == team->addr_storage.storage) {
             attr.mask = UCC_CONTEXT_ATTR_FIELD_CTX_ADDR_LEN | UCC_CONTEXT_ATTR_FIELD_CTX_ADDR;
@@ -273,12 +276,13 @@ ucc_team_addr_exchange(ucc_context_t *context, ucc_team_t *team)
                           team->size * sizeof(size_t));
                 return UCC_ERR_NO_MEMORY;
             }
+
             status = oob.allgather(&context->attr.ctx_addr_len, team->addr_storage.storage,
                                    sizeof(size_t), oob.coll_info, &team->addr_storage.oob_req);
             if (UCC_OK != status) {
                 ucc_error("failed to start oob allgather\n");
             }
-            return status;
+            return UCC_INPROGRESS;
         }
         addr_lens = (size_t*)team->addr_storage.storage;
         ucc_assert(team->addr_storage.storage);
@@ -303,7 +307,7 @@ ucc_team_addr_exchange(ucc_context_t *context, ucc_team_t *team)
         if (UCC_OK != status) {
             ucc_error("failed to start oob allgather\n");
         }
-        return status;
+        return UCC_INPROGRESS;
     }
     ucc_assert(team->addr_storage.addr_len);
     return UCC_OK;
