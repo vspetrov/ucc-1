@@ -53,4 +53,5 @@ static inline unsigned long ucc_str_hash_djb2(const char *str)
     return hash;
 }
 
+int ucc_sort_uniq(int *array, int len, int inverse);
 #endif

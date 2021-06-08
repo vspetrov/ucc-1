@@ -10,6 +10,7 @@
 #include "ucc_progress_queue.h"
 #include "utils/ucc_list.h"
 #include "utils/ucc_proc_info.h"
+#include "ucc_topo.h"
 
 typedef struct ucc_lib_info          ucc_lib_info_t;
 typedef struct ucc_cl_context        ucc_cl_context_t;
@@ -57,6 +58,7 @@ typedef struct ucc_context {
     ucc_team_id_pool_t       ids;
     ucc_context_id_t         id;
     ucc_addr_storage_t       addr_storage;
+    ucc_topo_t               *topo;
 } ucc_context_t;
 
 typedef struct ucc_context_config {

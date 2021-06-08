@@ -501,7 +501,14 @@ ucc_status_t ucc_context_create(ucc_lib_h lib,
             ucc_error("failed to exchagne addresses during context creation");
             goto error_ctx_create;
         }
-        fprintf(stderr,"[%d][%s] -- [%d]\n",getpid(),__FUNCTION__,__LINE__);
+
+        //TODO check if topo creation is required (query CL/HIER)
+        status = ucc_topo_init(&ctx->addr_storage, &ctx->topo);
+        if (UCC_OK != status) {
+            ucc_free(ctx->addr_storage.storage);
+            ucc_error("failed to init ctx topo");
+            goto error_ctx_create;
+        }
     }
     ucc_info("created ucc context %p for lib %s", ctx, lib->full_prefix);
     *context = ctx;
@@ -554,6 +561,7 @@ ucc_status_t ucc_context_destroy(ucc_context_t *context)
         tl_lib->iface->context.destroy(&tl_ctx->super);
     }
     ucc_progress_queue_finalize(context->pq);
+    ucc_topo_cleanup(context->topo);
     ucc_free(context->addr_storage.storage);
     ucc_free(context->all_tls.names);
     ucc_free(context->tl_ctx);

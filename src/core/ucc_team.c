@@ -344,7 +344,15 @@ ucc_status_t ucc_team_create_test_single(ucc_context_t *context,
     case UCC_TEAM_CL_CREATE:
         status = ucc_team_create_cls(context, team);
     }
-    /* ucc_topo_init(&team->addr_storage, &team->topo); */
+    if (UCC_INPROGRESS == status) {
+        return status;
+    }
+
+    //TODO check if topo is rqeuired (CL/HIER)
+    status = ucc_team_topo_init(team, context->topo, &team->topo);
+    if (UCC_OK != status) {
+        ucc_error("failed to init team topo");
+    }
 out:
     team->status = status;
     /* TODO: add team/coll selection and check if some teams are never
@@ -389,7 +397,7 @@ static ucc_status_t ucc_team_destroy_single(ucc_team_h team)
         }
         team->cl_teams[i] = NULL;
     }
-    /* ucc_topo_cleanup(team->topo); */
+    ucc_team_topo_cleanup(team->topo);
     ucc_free(team->addr_storage.storage);
     ucc_free(team->ctx_ranks);
     ucc_team_relase_id(team);

@@ -43,6 +43,7 @@ typedef struct ucc_team {
     ucc_rank_t          ctx_rank;
     void               *oob_req;
     ucc_ep_map_t        ctx_map;
+    ucc_team_topo_t    *topo;
 } ucc_team_t;
 
 /* If the bit is set then team_id is provided by the user */
