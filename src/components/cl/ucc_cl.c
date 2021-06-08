@@ -29,6 +29,7 @@ ucc_config_field_t ucc_cl_context_config_table[] = {
 
 const char *ucc_cl_names[] = {
     [UCC_CL_BASIC] = "basic",
+    [UCC_CL_HIER]  = "hier",
     [UCC_CL_ALL]   = "all",
     [UCC_CL_LAST]  = NULL
 };
