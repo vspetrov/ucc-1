@@ -8,8 +8,10 @@
 
 #include "ucc/api/ucc.h"
 #include "utils/ucc_datastruct.h"
+#include "utils/ucc_coll_utils.h"
 #include "ucc_context.h"
 #include "utils/ucc_math.h"
+#include "ucc_topo.h"
 
 typedef struct ucc_context ucc_context_t;
 typedef struct ucc_cl_team ucc_cl_team_t;
@@ -37,6 +39,10 @@ typedef struct ucc_team {
     ucc_tl_team_t     *service_team;
     ucc_coll_task_t   *task;
     ucc_addr_storage_t addr_storage; /*< addresses of team endpoints */
+    ucc_rank_t         *ctx_ranks;
+    ucc_rank_t          ctx_rank;
+    void               *oob_req;
+    ucc_ep_map_t        ctx_map;
 } ucc_team_t;
 
 /* If the bit is set then team_id is provided by the user */
@@ -49,8 +55,12 @@ void ucc_copy_team_params(ucc_team_params_t *dst, const ucc_team_params_t *src);
 static inline ucc_context_addr_header_t*
 ucc_get_team_ep_header(ucc_context_t *context, ucc_team_t *team, ucc_rank_t rank)
 {
-    return (ucc_context_addr_header_t*)
-        PTR_OFFSET(team->addr_storage.storage, team->addr_storage.addr_len * rank);
+    ucc_addr_storage_t *storage = context->addr_storage.storage ?
+        &context->addr_storage : &team->addr_storage;
+    ucc_rank_t storage_rank = context->addr_storage.storage ?
+        ucc_ep_map_eval(team->ctx_map, rank) : rank;
+
+    return UCC_ADDR_STORAGE_RANK_HEADER(storage, storage_rank);
 }
 
 static inline void*
