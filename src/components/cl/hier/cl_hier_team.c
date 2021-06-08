@@ -6,6 +6,7 @@
 
 #include "cl_hier.h"
 #include "utils/ucc_malloc.h"
+#include "core/ucc_team.h"
 
 UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
                     const ucc_base_team_params_t *params)
@@ -155,12 +156,47 @@ ucc_status_t ucc_cl_hier_team_create_test(ucc_base_team_t *cl_team)
         if (UCC_OK != status) {
             cl_error(ctx->super.super.lib, "failed to build score map");
         }
+        team->score = score;
     }
     return status;
 }
 
-ucc_status_t ucc_cl_hier_team_get_scores(ucc_base_team_t *cl_team, /* NOLINT */
-                                          ucc_coll_score_t **score) /* NOLINT */
+ucc_status_t ucc_cl_hier_team_get_scores(ucc_base_team_t *cl_team,
+                                          ucc_coll_score_t **score_p)
 {
-    return UCC_ERR_NOT_IMPLEMENTED;
+    ucc_cl_hier_team_t *team = ucc_derived_of(cl_team, ucc_cl_hier_team_t);
+    ucc_base_lib_t      *lib  = UCC_CL_TEAM_LIB(team);
+    ucc_coll_score_t  *score;
+    ucc_status_t       status;
+
+    status = ucc_coll_score_alloc(&score);
+    if (UCC_OK != status) {
+        cl_error(lib, "faild to alloc score_t");
+        return status;
+    }
+    status = ucc_coll_score_add_range(score, UCC_COLL_TYPE_ALLREDUCE,
+                                      UCC_MEMORY_TYPE_CUDA, 0, UCC_MSG_MAX,
+                                      UCC_CL_HIER_DEFAULT_SCORE, ucc_cl_hier_coll_init,
+                                      cl_team);
+    if (UCC_OK != status) {
+        cl_error(lib, "faild to add range to score_t");
+        return status;
+    }
+    if (strlen(lib->score_str) > 0) {
+        status = ucc_coll_score_update_from_str(
+            lib->score_str, score, cl_team->team->size,
+            NULL, cl_team, UCC_CL_HIER_DEFAULT_SCORE, NULL);
+
+        /* If INVALID_PARAM - User provided incorrect input - try to proceed */
+        if ((status < 0) && (status != UCC_ERR_INVALID_PARAM) &&
+            (status != UCC_ERR_NOT_SUPPORTED)) {
+            goto err;
+        }
+    }
+    *score_p = score;
+    return UCC_OK;
+err:
+    ucc_coll_score_free(score);
+    *score_p = NULL;
+    return status;
 }

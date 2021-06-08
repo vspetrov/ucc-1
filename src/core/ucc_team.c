@@ -317,6 +317,7 @@ ucc_status_t ucc_team_create_test_single(ucc_context_t *context,
                                          ucc_team_t    *team)
 {
     ucc_status_t status = UCC_OK;
+    int          i;
     switch (team->state) {
     case UCC_TEAM_ADDR_EXCHANGE:
         status = ucc_team_exchange(context, team);
@@ -347,12 +348,45 @@ ucc_status_t ucc_team_create_test_single(ucc_context_t *context,
     if (UCC_INPROGRESS == status) {
         return status;
     }
+    // ----------------- BUILD SCORE MAP ---------------------------//
+    ucc_coll_score_t *score, *score_merge, *score_next;
+    status =
+        UCC_CL_TEAM_IFACE(team->cl_teams[0])
+        ->team.get_scores(&team->cl_teams[0]->super, &score);
+    if (UCC_OK != status) {
+        ucc_error("failed to get cl %s scores",
+                 UCC_CL_TEAM_IFACE(team->cl_teams[0])->super.name);
+        goto out;
+    }
+    for (i = 1; i < team->n_cl_teams; i++) {
+        status =
+            UCC_CL_TEAM_IFACE(team->cl_teams[i])
+            ->team.get_scores(&team->cl_teams[i]->super, &score_next);
+        if (UCC_OK != status) {
+            ucc_error("failed to get cl %s scores",
+                     UCC_CL_TEAM_IFACE(team->cl_teams[i])->super.name);
+            goto out;
+        }
+        status =
+            ucc_coll_score_merge(score, score_next, &score_merge, 1);
+        if (UCC_OK != status) {
+            ucc_error("failed to merge scores");
+            goto out;;
+        }
+        score = score_merge;
+    }
+    status = ucc_coll_score_build_map(score, &team->score_map);
+    if (UCC_OK != status) {
+        ucc_error("failed to build score map");
+        goto out;
+    }
 
     //TODO check if topo is rqeuired (CL/HIER)
     status = ucc_team_topo_init(team, context->topo, &team->topo);
     if (UCC_OK != status) {
         ucc_error("failed to init team topo");
     }
+
 out:
     team->status = status;
     /* TODO: add team/coll selection and check if some teams are never
@@ -397,6 +431,7 @@ static ucc_status_t ucc_team_destroy_single(ucc_team_h team)
         }
         team->cl_teams[i] = NULL;
     }
+    ucc_coll_score_free_map(team->score_map);    
     ucc_team_topo_cleanup(team->topo);
     ucc_free(team->addr_storage.storage);
     ucc_free(team->ctx_ranks);

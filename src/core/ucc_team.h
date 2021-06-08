@@ -12,6 +12,7 @@
 #include "ucc_context.h"
 #include "utils/ucc_math.h"
 #include "ucc_topo.h"
+#include "coll_score/ucc_coll_score.h"
 
 typedef struct ucc_context ucc_context_t;
 typedef struct ucc_cl_team ucc_cl_team_t;
@@ -44,6 +45,7 @@ typedef struct ucc_team {
     void               *oob_req;
     ucc_ep_map_t        ctx_map;
     ucc_team_topo_t    *topo;
+    ucc_score_map_t    *score_map;
 } ucc_team_t;
 
 /* If the bit is set then team_id is provided by the user */

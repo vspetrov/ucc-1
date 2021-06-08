@@ -48,10 +48,15 @@ typedef struct ucc_cl_hier_team {
     ucc_team_multiple_req_t *team_create_req;
     ucc_tl_team_t          **tl_teams;
     unsigned                 n_tl_teams;
+    ucc_coll_score_t        *score;
     ucc_score_map_t         *score_map;
 } ucc_cl_hier_team_t;
 UCC_CLASS_DECLARE(ucc_cl_hier_team_t, ucc_base_context_t *,
                   const ucc_base_team_params_t *);
+
+ucc_status_t ucc_cl_hier_coll_init(ucc_base_coll_args_t *coll_args,
+                                    ucc_base_team_t *team,
+                                    ucc_coll_task_t **task);
 
 #define UCC_CL_HIER_TEAM_CTX(_team)                                           \
     (ucc_derived_of((_team)->super.super.context, ucc_cl_hier_context_t))
