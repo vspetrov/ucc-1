@@ -33,6 +33,12 @@ typedef struct ucc_context_id {
     uint32_t      seq_num;
 } ucc_context_id_t;
 
+typedef struct ucc_addr_storage {
+    void   *storage;
+    void   *oob_req;
+    size_t  addr_len;
+} ucc_addr_storage_t;
+
 typedef struct ucc_context {
     ucc_lib_info_t          *lib;
     ucc_context_params_t     params;
