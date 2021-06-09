@@ -43,6 +43,25 @@ typedef struct ucc_cl_hier_context {
 UCC_CLASS_DECLARE(ucc_cl_hier_context_t, const ucc_base_context_params_t *,
                   const ucc_base_config_t *);
 
+typedef enum {
+    UCC_HIER_PAIR_DISABLED,
+    UCC_HIER_PAIR_ENABLED
+} ucc_hier_pair_state_t;
+
+typedef struct ucc_hier_pair {
+    ucc_hier_pair_state_t state;
+    ucc_tl_team_t *tl_team;
+    ucc_tl_context_t *tl_ctx;
+    ucc_sbgp_t    *sbgp;
+    ucc_score_map_t *score_map;
+} ucc_hier_pair_t;
+
+typedef enum {
+    UCC_HIER_PAIR_NODE_UCP,
+    UCC_HIER_PAIR_NET_UCP,
+    UCC_HIER_PAIR_LAST,
+} ucc_hier_pair_type_t;
+
 typedef struct ucc_cl_hier_team {
     ucc_cl_team_t            super;
     ucc_team_multiple_req_t *team_create_req;
@@ -50,10 +69,14 @@ typedef struct ucc_cl_hier_team {
     unsigned                 n_tl_teams;
     ucc_coll_score_t        *score;
     ucc_score_map_t         *score_map;
+    ucc_hier_pair_t          pairs[UCC_HIER_PAIR_LAST];
 } ucc_cl_hier_team_t;
 UCC_CLASS_DECLARE(ucc_cl_hier_team_t, ucc_base_context_t *,
                   const ucc_base_team_params_t *);
 
+ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
+                                    ucc_base_team_t *team,
+                                    ucc_coll_task_t **task);
 ucc_status_t ucc_cl_hier_coll_init(ucc_base_coll_args_t *coll_args,
                                     ucc_base_team_t *team,
                                     ucc_coll_task_t **task);
