@@ -53,20 +53,16 @@ ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
 //    task_rs->flags = UCC_COLL_TASK_FLAG_INTERNAL; // <- useless need to cleanup manually
     ucc_schedule_add_task(schedule, task_rs);
     ucc_event_manager_subscribe(&schedule->super.em, UCC_EVENT_SCHEDULE_STARTED,
-                                task_rs);
-    task_rs->handlers[UCC_EVENT_SCHEDULE_STARTED] = ucc_task_start_handler;
+                                task_rs, ucc_task_start_handler);
 
 
     ucc_schedule_add_task(schedule, task_ar);
     ucc_event_manager_subscribe(&task_rs->em, UCC_EVENT_COMPLETED,
-                                task_ar);
-    task_ar->handlers[UCC_EVENT_COMPLETED] = ucc_task_start_handler;
-
+                                task_ar, ucc_task_start_handler);
 
     ucc_schedule_add_task(schedule, task_ag);
     ucc_event_manager_subscribe(&task_ar->em, UCC_EVENT_COMPLETED,
-                                task_ag);
-    task_ag->handlers[UCC_EVENT_COMPLETED] = ucc_task_start_handler;
+                                task_ag, ucc_task_start_handler);
 
     schedule->super.post     = ucc_schedule_post;
     schedule->super.progress = NULL;
