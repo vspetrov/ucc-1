@@ -13,6 +13,7 @@ typedef enum ucc_sbgp_type_t {
     UCC_SBGP_SOCKET,
     UCC_SBGP_NODE,
     UCC_SBGP_NODE_LEADERS,
+    UCC_SBGP_NET,
     UCC_SBGP_SOCKET_LEADERS,
     UCC_SBGP_NUMA_LEADERS,
     UCC_SBGP_FLAT,

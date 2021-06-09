@@ -121,12 +121,12 @@ static inline ucc_status_t sbgp_create_node(ucc_team_topo_t *topo, ucc_sbgp_t *s
     return UCC_OK;
 }
 
-static ucc_status_t sbgp_create_node_leaders(ucc_team_topo_t *topo, ucc_sbgp_t *sbgp)
+static ucc_status_t sbgp_create_node_leaders(ucc_team_topo_t *topo, ucc_sbgp_t *sbgp,
+                                             int ctx_nlr)
 {
     ucc_team_t *team   = sbgp->team;
     int comm_size        = team->size;
     int comm_rank        = team->rank;
-    int ctx_nlr          = topo->node_leader_rank_id;
     int i_am_node_leader = 0;
     int nnodes           = topo->topo->nnodes;
     int i, n_node_leaders;
@@ -286,7 +286,15 @@ ucc_status_t ucc_sbgp_create(ucc_team_topo_t *topo, ucc_sbgp_type_t type)
         break;
     case UCC_SBGP_NODE_LEADERS:
         assert(UCC_SBGP_DISABLED != topo->sbgps[UCC_SBGP_NODE].status);
-        status = sbgp_create_node_leaders(topo, sbgp);
+        status = sbgp_create_node_leaders(topo, sbgp, topo->node_leader_rank_id);
+        break;
+    case UCC_SBGP_NET:
+        if (topo->sbgps[UCC_SBGP_NODE].status == UCC_SBGP_NOT_INIT) {
+            ucc_sbgp_create(topo, UCC_SBGP_NODE);
+        }
+        assert(UCC_SBGP_DISABLED != topo->sbgps[UCC_SBGP_NODE].status);
+        status = sbgp_create_node_leaders(topo, sbgp,
+                                          topo->sbgps[UCC_SBGP_NODE].group_rank);
         break;
     case UCC_SBGP_SOCKET_LEADERS:
         if (topo->sbgps[UCC_SBGP_NODE].status == UCC_SBGP_NOT_INIT) {
