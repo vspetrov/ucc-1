@@ -188,6 +188,15 @@ ucc_team_create_cls(ucc_context_t *context, ucc_team_t *team)
     ucc_status_t           status;
     ucc_base_team_params_t b_params;
 
+    //TODO check if topo is rqeuired (CL/HIER)
+    if (!team->topo) {
+        status = ucc_team_topo_init(team, context->topo, &team->topo);
+        if (UCC_OK != status) {
+            ucc_error("failed to init team topo");
+            return status;
+        }
+    }
+
     if (team->last_team_create_posted >= 0) {
         cl_iface = UCC_CL_CTX_IFACE(context->cl_ctx[team->last_team_create_posted]);
         b_team   = &team->cl_teams[team->last_team_create_posted]->super;
@@ -379,12 +388,6 @@ ucc_status_t ucc_team_create_test_single(ucc_context_t *context,
     if (UCC_OK != status) {
         ucc_error("failed to build score map");
         goto out;
-    }
-
-    //TODO check if topo is rqeuired (CL/HIER)
-    status = ucc_team_topo_init(team, context->topo, &team->topo);
-    if (UCC_OK != status) {
-        ucc_error("failed to init team topo");
     }
 
 out:
