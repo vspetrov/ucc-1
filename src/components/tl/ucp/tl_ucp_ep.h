@@ -25,7 +25,8 @@ static inline ucc_context_addr_header_t*
 ucc_tl_ucp_get_team_ep_header(ucc_tl_ucp_team_t *team, ucc_rank_t rank)
 
 {
-    return ucc_get_team_ep_header(UCC_TL_CORE_CTX(team), team->super.super.team, rank);
+    return ucc_get_team_ep_header(UCC_TL_CORE_CTX(team), team->super.super.team,
+                                  ucc_ep_map_eval(team->map, rank));
 }
 
 static inline ucc_context_id_t

@@ -46,7 +46,7 @@ ucc_status_t ucc_tl_ucp_connect_team_ep(ucc_tl_ucp_team_t *team, ucc_rank_t team
     status = ucc_tl_ucp_connect_ep(ctx, ep,
                                    ucc_get_team_ep_addr(UCC_TL_CORE_CTX(team),
                                                         team->super.super.team,
-                                                        team_rank,
+                                                        ucc_ep_map_eval(team->map, team_rank),
                                                         ucc_tl_ucp.super.super.id));
     if (UCC_OK == status) {
         tl_ucp_hash_put(ctx->ep_hash, h->ctx_id, *ep);

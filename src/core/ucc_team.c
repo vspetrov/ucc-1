@@ -162,6 +162,7 @@ ucc_team_create_service_team(ucc_context_t *context, ucc_team_t *team)
         b_params.scope_id = 0;
         b_params.id       = 0;
         b_params.team     = team;
+        b_params.map.type = UCC_EP_MAP_FULL;
         status = UCC_TL_CTX_IFACE(context->service_ctx)
             ->team.create_post(&context->service_ctx->super, &b_params, &b_team);
         if (UCC_OK != status) {
@@ -209,9 +210,10 @@ ucc_team_create_cls(ucc_context_t *context, ucc_team_t *team)
         }
     }
     memcpy(&b_params.params, &team->params, sizeof(ucc_team_params_t));
-    b_params.rank = team->rank;
-    b_params.id   = team->id;
-    b_params.team = team;
+    b_params.rank     = team->rank;
+    b_params.id       = team->id;
+    b_params.team     = team;
+    b_params.map.type = UCC_EP_MAP_FULL;
     for (i = team->last_team_create_posted + 1; i < context->n_cl_ctx; i++) {
         cl_iface = UCC_CL_CTX_IFACE(context->cl_ctx[i]);
         status   = cl_iface->team.create_post(&context->cl_ctx[i]->super,
