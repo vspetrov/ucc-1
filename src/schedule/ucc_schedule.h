@@ -50,7 +50,6 @@ typedef struct ucc_coll_task {
     ucc_coll_callback_t          cb;
     ucc_event_manager_t          em;
     ucc_status_t               (*progress)(struct ucc_coll_task *self);
-    struct ucc_schedule         *schedule;
     ucc_ee_h                     ee;
     ucc_ev_t                    *ev;
     void                        *ee_task;
