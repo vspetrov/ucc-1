@@ -12,12 +12,17 @@
 #include "alltoall/alltoall.h"
 #include "alltoallv/alltoallv.h"
 #include "allreduce/allreduce.h"
+#include "reduce_scatter/reduce_scatter.h"
 #include "allgather/allgather.h"
 #include "allgatherv/allgatherv.h"
 #include "bcast/bcast.h"
+
 const char
-    *ucc_tl_ucp_default_alg_select_str[UCC_TL_UCP_N_DEFAULT_ALG_SELECT_STR] = {
-        UCC_TL_UCP_ALLREDUCE_DEFAULT_ALG_SELECT_STR};
+*ucc_tl_ucp_default_alg_select_str[UCC_TL_UCP_N_DEFAULT_ALG_SELECT_STR] = {
+    UCC_TL_UCP_ALLREDUCE_DEFAULT_ALG_SELECT_STR,
+    UCC_TL_UCP_REDUCE_SCATTER_DEFAULT_ALG_SELECT_STR,
+    UCC_TL_UCP_ALLGATHER_DEFAULT_ALG_SELECT_STR
+};
 
 void ucc_tl_ucp_send_completion_cb(void *request, ucs_status_t status,
                                    void *user_data)
@@ -236,6 +241,10 @@ static inline int alg_id_from_str(ucc_coll_type_t coll_type, const char *str)
     switch (coll_type) {
     case UCC_COLL_TYPE_ALLREDUCE:
         return ucc_tl_ucp_allreduce_alg_from_str(str);
+    case UCC_COLL_TYPE_REDUCE_SCATTER:
+        return ucc_tl_ucp_reduce_scatter_alg_from_str(str);
+    case UCC_COLL_TYPE_ALLGATHER:
+        return ucc_tl_ucp_allgather_alg_from_str(str);
     default:
         break;
     }
@@ -260,6 +269,29 @@ ucc_status_t ucc_tl_ucp_alg_id_to_init(int alg_id, const char *alg_id_str,
             break;
         case UCC_TL_UCP_ALLREDUCE_ALG_SRA_KNOMIAL:
             *init = ucc_tl_ucp_allreduce_sra_knomial_init;
+            break;
+        default:
+            status = UCC_ERR_INVALID_PARAM;
+            break;
+        };
+        break;
+    case UCC_COLL_TYPE_REDUCE_SCATTER:
+        switch (alg_id) {
+        case UCC_TL_UCP_REDUCE_SCATTER_ALG_KNOMIAL:
+            *init = ucc_tl_ucp_reduce_scatter_knomial_init;
+            break;
+        default:
+            status = UCC_ERR_INVALID_PARAM;
+            break;
+        };
+        break;
+    case UCC_COLL_TYPE_ALLGATHER:
+        switch (alg_id) {
+        case UCC_TL_UCP_ALLGATHER_ALG_KNOMIAL:
+            *init = ucc_tl_ucp_allgather_knomial_init;
+            break;
+        case UCC_TL_UCP_ALLGATHER_ALG_RING:
+            *init = ucc_tl_ucp_allgather_ring_init;
             break;
         default:
             status = UCC_ERR_INVALID_PARAM;
