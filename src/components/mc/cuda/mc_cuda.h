@@ -58,6 +58,7 @@ typedef struct ucc_mc_cuda_config {
     int                            stream_blocking_wait;
     size_t                         mpool_elem_size;
     int                            mpool_max_elems;
+    int                            reduce_nb;
 } ucc_mc_cuda_config_t;
 
 typedef struct ucc_mc_cuda {
@@ -88,10 +89,10 @@ ucc_status_t ucc_mc_cuda_reduce(const void *src1, const void *src2,
                                 void *dst, size_t count, ucc_datatype_t dt,
                                 ucc_reduction_op_t op);
 
-ucc_status_t ucc_mc_cuda_reduce_multi(const void *src1, const void *src2,
+ucc_status_t ucc_mc_cuda_reduce_multi_nb(const void *src1, const void *src2,
                                       void *dst, size_t size, size_t count,
                                       size_t stride, ucc_datatype_t dt,
-                                      ucc_reduction_op_t op);
+                                         ucc_reduction_op_t op, void **req);
 
 extern ucc_mc_cuda_t ucc_mc_cuda;
 #define CUDACHECK(cmd) do {                                                    \

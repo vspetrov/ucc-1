@@ -137,10 +137,10 @@ CUDA_REDUCE_WITH_OP(BXOR, DO_OP_BXOR)
 extern "C" {
 #endif
 
-ucc_status_t ucc_mc_cuda_reduce_multi(const void *src1, const void *src2,
-                                      void *dst, size_t size, size_t count,
-                                      size_t stride, ucc_datatype_t dt,
-                                      ucc_reduction_op_t op)
+ucc_status_t ucc_mc_cuda_reduce_multi_nb(const void *src1, const void *src2,
+                                         void *dst, size_t size, size_t count,
+                                         size_t stride, ucc_datatype_t dt,
+                                         ucc_reduction_op_t op, void **req)
 {
     cudaStream_t  stream = ucc_mc_cuda.stream;
     size_t        ld     = stride / ucc_dt_size(dt);
@@ -179,7 +179,15 @@ ucc_status_t ucc_mc_cuda_reduce_multi(const void *src1, const void *src2,
             return UCC_ERR_NOT_SUPPORTED;
     }
     CUDACHECK(cudaGetLastError());
-    CUDACHECK(cudaStreamSynchronize(stream));
+
+    if (req && MC_CUDA_CONFIG->reduce_nb) {
+        ucc_mc_cuda_event_t *cuda_event = (ucc_mc_cuda_event_t*)ucc_mpool_get(&ucc_mc_cuda.events);
+        ucc_assert(cuda_event);
+        CUDACHECK(cudaEventRecord(cuda_event->event, stream));
+        *req = (void*)cuda_event;
+    } else {
+        CUDACHECK(cudaStreamSynchronize(stream));
+    }
     return UCC_OK;
 }
 
