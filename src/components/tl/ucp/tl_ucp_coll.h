@@ -56,6 +56,15 @@ typedef struct ucc_tl_ucp_task {
     };
 } ucc_tl_ucp_task_t;
 
+static inline void ucc_tl_ucp_task_reset(ucc_tl_ucp_task_t *task)
+{
+    task->send_posted        = 0;
+    task->send_completed     = 0;
+    task->recv_posted        = 0;
+    task->recv_completed     = 0;
+    task->reduce_req         = NULL;
+}
+
 static inline ucc_tl_ucp_task_t *ucc_tl_ucp_get_task(ucc_tl_ucp_team_t *team)
 {
     ucc_tl_ucp_context_t *ctx = UCC_TL_UCP_TEAM_CTX(team);
@@ -63,15 +72,12 @@ static inline ucc_tl_ucp_task_t *ucc_tl_ucp_get_task(ucc_tl_ucp_team_t *team)
     task                     = ucc_mpool_get(&ctx->req_mp);
     task->super.super.status = UCC_OPERATION_INITIALIZED;
     task->super.flags        = 0;
-    task->send_posted        = 0;
-    task->send_completed     = 0;
-    task->recv_posted        = 0;
-    task->recv_completed     = 0;
     task->n_polls            = ctx->cfg.n_polls;
     task->team               = team;
     task->subset.map.type    = UCC_EP_MAP_FULL;
     task->subset.map.ep_num  = team->size;
     task->subset.myrank      = team->rank;
+    ucc_tl_ucp_task_reset(task);
     return task;
 }
 
