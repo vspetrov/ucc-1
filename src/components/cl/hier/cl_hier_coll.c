@@ -17,8 +17,10 @@ ucc_status_t ucc_cl_hier_coll_init(ucc_base_coll_args_t *coll_args,
 static ucc_status_t ucc_cl_hier_schedule_finalize(ucc_coll_task_t *task)
 {
     ucc_schedule_t *schedule = ucc_derived_of(task, ucc_schedule_t);
+    ucc_status_t status;
+    status = ucc_schedule_finalize(task);
     ucc_free(schedule);
-    return UCC_OK;
+    return status;
 }
 
 ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
@@ -45,7 +47,6 @@ ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
     ucc_assert(schedule);
 
     ucc_schedule_init(schedule, UCC_CL_CORE_CTX(cl_team));
-
     memcpy(&args, coll_args, sizeof(args));
 
 
