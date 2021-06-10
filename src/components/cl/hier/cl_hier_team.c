@@ -76,14 +76,6 @@ UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
         }
     }
 
-    self->tl_teams = ucc_malloc(sizeof(ucc_tl_team_t *) * n_teams,
-                                "cl_hier_tl_teams");
-    if (!self->tl_teams) {
-        cl_error(cl_context->lib, "failed to allocate %zd bytes for tl_teams",
-                 sizeof(ucc_tl_team_t *) * n_teams);
-        status = UCC_ERR_NO_MEMORY;
-        goto err;
-    }
     self->n_tl_teams = 0;
     status           = ucc_team_multiple_req_alloc(&self->team_create_req,
                                                    n_teams);
@@ -146,7 +138,6 @@ UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
     cl_info(cl_context->lib, "posted cl team: %p", self);
     return UCC_OK;
 err:
-    ucc_free(self->tl_teams);
     return status;
 }
 
@@ -163,9 +154,9 @@ ucc_status_t ucc_cl_hier_team_destroy(ucc_base_team_t *cl_team)
     ucc_cl_hier_team_t    *team    = ucc_derived_of(cl_team, ucc_cl_hier_team_t);
     ucc_cl_hier_context_t *ctx     = UCC_CL_HIER_TEAM_CTX(team);
     ucc_status_t            status  = UCC_OK;
-    int                     i;
+    int                     i, j;
 
-    return UCC_OK;
+
     if (NULL == team->team_create_req) {
         status = ucc_team_multiple_req_alloc(&team->team_create_req,
                                              team->n_tl_teams);
@@ -174,10 +165,18 @@ ucc_status_t ucc_cl_hier_team_destroy(ucc_base_team_t *cl_team)
             return status;
         }
         team->team_create_req->n_teams       = team->n_tl_teams;
-        for (i = 0; i < team->n_tl_teams; i++) {
-            team->team_create_req->descs[i].team = team->tl_teams[i];
+        j = 0;
+        for (i = 0; i < UCC_HIER_PAIR_LAST; i++) {
+            if (team->pairs[i].state == UCC_HIER_PAIR_ENABLED) {
+                ucc_coll_score_free_map(team->pairs[i].score_map);
+                ucc_tl_context_put(team->pairs[i].tl_ctx);
+                team->team_create_req->descs[j].team =
+                    team->pairs[i].tl_team;
+                j++;
+            }
         }
     }
+    ucc_assert(j == team->n_tl_teams);
     status = ucc_tl_team_destroy_multiple(team->team_create_req);
     if (UCC_INPROGRESS == status) {
         return status;
@@ -190,8 +189,6 @@ ucc_status_t ucc_cl_hier_team_destroy(ucc_base_team_t *cl_team)
         }
     }
     ucc_team_multiple_req_free(team->team_create_req);
-    ucc_coll_score_free_map(team->score_map);
-    ucc_free(team->tl_teams);
     UCC_CLASS_DELETE_FUNC_NAME(ucc_cl_hier_team_t)(cl_team);
     return status;
 }
@@ -206,7 +203,7 @@ ucc_status_t ucc_cl_hier_team_create_test(ucc_base_team_t *cl_team)
     status = ucc_tl_team_create_multiple(team->team_create_req);
 
     if (status == UCC_OK) {
-        printf("ALL TEAMS CREATED\n");
+        team->n_tl_teams = 0;
         j = 0;
         for (i = 0; i < UCC_HIER_PAIR_LAST; i++) {
             if (team->pairs[i].state == UCC_HIER_PAIR_ENABLED) {
@@ -230,7 +227,7 @@ ucc_status_t ucc_cl_hier_team_create_test(ucc_base_team_t *cl_team)
                         continue;
                         //goto cleanup ?
                     }
-
+                    team->n_tl_teams++;
                     cl_info(ctx->super.super.lib, "initialized tl %s team",
                             UCC_TL_CTX_IFACE(team->team_create_req->descs[i].ctx)->
                             super.name);
