@@ -28,6 +28,7 @@ typedef struct ucc_tl_ucp_task {
     uint32_t             tag;
     uint32_t             n_polls;
     ucc_tl_team_subset_t subset;
+    void                *reduce_req;
     union {
         struct {
             int                     phase;

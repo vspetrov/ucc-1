@@ -114,7 +114,7 @@ UCC_KN_PHASE_PROXY:
         SAVE_STATE(UCC_KN_PHASE_PROXY);
         return task->super.super.status;
     }
-
+UCC_KN_PHASE_REDUCE:
 out:
     task->super.super.status = UCC_OK;
     return task->super.super.status;
@@ -130,6 +130,7 @@ ucc_status_t ucc_tl_ucp_allgather_knomial_start(ucc_coll_task_t *coll_task)
     ptrdiff_t          offset;
     task->allgather_kn.phase = UCC_KN_PHASE_INIT;
     ucc_assert(task->args.src.info.mem_type == task->args.dst.info.mem_type);
+    ucc_tl_ucp_task_reset(task);
     ucc_knomial_pattern_init_backward(team->size, team->rank, task->reduce_scatter_kn.p.radix, &task->reduce_scatter_kn.p);
     offset = ucc_sra_kn_get_offset(task->args.src.info.count,
                                    ucc_dt_size(task->args.src.info.datatype),

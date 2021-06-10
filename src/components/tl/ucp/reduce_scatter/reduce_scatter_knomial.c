@@ -142,11 +142,11 @@ UCC_KN_PHASE_EXTRA:
                 block_count, step_radix, local_seg_index);
             local_data  = PTR_OFFSET(sbuf, local_seg_offset * dt_size);
             reduce_data = task->reduce_scatter_kn.scratch;
-            if (UCC_OK != (status = ucc_dt_reduce_multi(
+            if (UCC_OK != (status = ucc_dt_reduce_multi_nb(
                                local_data, rbuf, reduce_data,
                                task->send_posted - p->iteration * (radix - 1),
                                local_seg_count, local_seg_count * dt_size, dt,
-                               mem_type, &task->args))) {
+                               mem_type, &task->args, &task->reduce_req))) {
                 tl_error(UCC_TL_TEAM_LIB(task->team),
                          "failed to perform dt reduction");
                 task->super.super.status = status;
@@ -154,6 +154,13 @@ UCC_KN_PHASE_EXTRA:
             }
         }
         ucc_knomial_pattern_next_iteration(p);
+    UCC_KN_PHASE_REDUCE:
+        if (UCC_OK != ucc_mc_reduce_req_test(task->reduce_req, mem_type)) {
+            SAVE_STATE(UCC_KN_PHASE_REDUCE);
+            return task->super.super.status;
+        }
+        ucc_mc_reduce_req_free(task->reduce_req, mem_type);
+        task->reduce_req = NULL;
     }
 
     offset = ucc_sra_kn_get_offset(count, dt_size, rank, size, radix);
