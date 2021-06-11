@@ -107,7 +107,7 @@ static ucc_status_t ucc_schedule_pipelined_post(ucc_coll_task_t *task)
         for (j = 0; j < frags[0]->super.n_tasks; j++) {
             frags[i]->tasks[j]->n_deps = frags[i]->tasks[j]->n_deps_orig;
             frags[i]->tasks[j]->n_deps_satisfied = 0;
-            if (i == 0) {
+            if (i == 0 && schedule_p->n_frags > 1) {
                 frags[0]->tasks[j]->n_deps_satisfied++;
             }
         }
@@ -153,19 +153,13 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
         }
     }
     for (i = 0; i < n_frags; i++) {
-        if (i > 0) {
-            for (j = 0; j < frags[i]->super.n_tasks; j++) {
-                ucc_event_manager_subscribe(&frags[i-1]->tasks[j]->em,
+        for (j = 0; j < frags[i]->super.n_tasks; j++) {
+            frags[i]->tasks[j]->n_deps_orig = frags[i]->tasks[j]->n_deps;
+            if (n_frags > 1) {
+                ucc_event_manager_subscribe(&frags[(i > 0) ? (i-1) : (n_frags - 1)]->tasks[j]->em,
                                             UCC_EVENT_COMPLETED, frags[i]->tasks[j],
                                             ucc_dependency_handler);
-                frags[i]->tasks[j]->n_deps_orig = frags[i]->tasks[j]->n_deps + 1;
-            }
-        } else {
-            for (j = 0; j < frags[0]->super.n_tasks; j++) {
-                ucc_event_manager_subscribe(&frags[n_frags-1]->tasks[j]->em,
-                                            UCC_EVENT_COMPLETED, frags[0]->tasks[j],
-                                            ucc_dependency_handler);
-                frags[0]->tasks[j]->n_deps_orig = frags[i]->tasks[j]->n_deps + 1;
+                frags[i]->tasks[j]->n_deps_orig++;
             }
         }
         ucc_event_manager_subscribe(&schedule->super.super.em, UCC_EVENT_SCHEDULE_STARTED,
