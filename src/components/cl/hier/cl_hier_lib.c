@@ -14,9 +14,11 @@
 UCC_CLASS_INIT_FUNC(ucc_cl_hier_lib_t, const ucc_base_lib_params_t *params,
                     const ucc_base_config_t *config)
 {
-    const ucc_cl_lib_config_t *cl_config =
-        ucc_derived_of(config, ucc_cl_lib_config_t);
-    UCC_CLASS_CALL_SUPER_INIT(ucc_cl_lib_t, &ucc_cl_hier.super, cl_config);
+    const ucc_cl_hier_lib_config_t *cl_hier_config =
+        ucc_derived_of(config, ucc_cl_hier_lib_config_t);
+    UCC_CLASS_CALL_SUPER_INIT(ucc_cl_lib_t, &ucc_cl_hier.super,
+                              &cl_hier_config->super);
+    memcpy(&self->cfg, cl_hier_config, sizeof(*cl_hier_config));
     cl_info(&self->super, "initialized lib object: %p", self);
     return UCC_OK;
 }

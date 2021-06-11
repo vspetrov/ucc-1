@@ -23,6 +23,10 @@ extern ucc_cl_hier_iface_t ucc_cl_hier;
 
 typedef struct ucc_cl_hier_lib_config {
     ucc_cl_lib_config_t super;
+    uint32_t            allreduce_hybrid_n_frags;
+    uint32_t            allreduce_hybrid_pipeline_depth;
+    size_t              allreduce_hybrid_frag_thresh;
+    size_t              allreduce_hybrid_frag_size;
 } ucc_cl_hier_lib_config_t;
 
 typedef struct ucc_cl_hier_context_config {
@@ -31,6 +35,7 @@ typedef struct ucc_cl_hier_context_config {
 
 typedef struct ucc_cl_hier_lib {
     ucc_cl_lib_t super;
+    ucc_cl_hier_lib_config_t cfg;
 } ucc_cl_hier_lib_t;
 UCC_CLASS_DECLARE(ucc_cl_hier_lib_t, const ucc_base_lib_params_t *,
                   const ucc_base_config_t *);
@@ -81,5 +86,8 @@ ucc_status_t ucc_cl_hier_coll_init(ucc_base_coll_args_t *coll_args,
 
 #define UCC_CL_HIER_TEAM_CTX(_team)                                           \
     (ucc_derived_of((_team)->super.super.context, ucc_cl_hier_context_t))
+
+#define UCC_CL_HIER_TEAM_LIB(_team)                                             \
+    (ucc_derived_of((_team)->super.super.context->lib, ucc_cl_hier_lib_t))
 
 #endif

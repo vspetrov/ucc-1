@@ -15,6 +15,28 @@ static ucc_config_field_t ucc_cl_hier_lib_config_table[] = {
     {"", "", NULL, ucc_offsetof(ucc_cl_hier_lib_config_t, super),
      UCC_CONFIG_TYPE_TABLE(ucc_cl_lib_config_table)},
 
+    {"ALLREDUCE_HYBRID_FRAG_THRESH", "inf",
+     "Threshold to enable fragmentation and pipelining of Hybrid allreduce alg",
+     ucc_offsetof(ucc_cl_hier_lib_config_t, allreduce_hybrid_frag_thresh),
+     UCC_CONFIG_TYPE_MEMUNITS},
+
+    {"ALLREDUCE_HYBRID_FRAG_SIZE", "inf",
+     "Maximum allowed fragment size of hybrid allreduce algorithm",
+     ucc_offsetof(ucc_cl_hier_lib_config_t, allreduce_hybrid_frag_size),
+     UCC_CONFIG_TYPE_MEMUNITS},
+
+    {"ALLREDUCE_HYBRID_N_FRAGS", "2",
+     "Number of fragments each allreduce is split into when hybrid alg is used\n"
+     "The actual number of fragments can be larger if fragment size exceeds\n"
+     "ALLREDUCE_HYBRID_FRAG_SIZE",
+     ucc_offsetof(ucc_cl_hier_lib_config_t, allreduce_hybrid_n_frags),
+     UCC_CONFIG_TYPE_UINT},
+
+    {"ALLREDUCE_HYBRID_PIPELINE_DEPTH", "2",
+     "Number of fragments simultaneously progressed by the hybrid alg",
+     ucc_offsetof(ucc_cl_hier_lib_config_t, allreduce_hybrid_pipeline_depth),
+     UCC_CONFIG_TYPE_UINT},
+
     {NULL}
 };
 
