@@ -13,15 +13,15 @@ ucc_status_t ucc_tl_ucp_alltoallv_pairwise_progress(ucc_coll_task_t *task);
 
 ucc_status_t ucc_tl_ucp_alltoallv_init(ucc_tl_ucp_task_t *task)
 {
-    if ((task->args.mask & UCC_COLL_ARGS_FIELD_FLAGS) &&
-        (task->args.flags & UCC_COLL_ARGS_FLAG_IN_PLACE)) {
-        tl_error(UCC_TL_TEAM_LIB(task->team),
+    if ((task->super.args.mask & UCC_COLL_ARGS_FIELD_FLAGS) &&
+        (task->super.args.flags & UCC_COLL_ARGS_FLAG_IN_PLACE)) {
+        tl_error(UCC_TASK_LIB(task),
                  "inplace alltoallv is not supported");
         return UCC_ERR_NOT_SUPPORTED;
     }
-    if ((task->args.src.info_v.datatype == UCC_DT_USERDEFINED) ||
-        (task->args.dst.info_v.datatype == UCC_DT_USERDEFINED)) {
-        tl_error(UCC_TL_TEAM_LIB(task->team),
+    if ((task->super.args.src.info_v.datatype == UCC_DT_USERDEFINED) ||
+        (task->super.args.dst.info_v.datatype == UCC_DT_USERDEFINED)) {
+        tl_error(UCC_TASK_LIB(task),
                  "user defined datatype is not supported");
         return UCC_ERR_NOT_SUPPORTED;
     }

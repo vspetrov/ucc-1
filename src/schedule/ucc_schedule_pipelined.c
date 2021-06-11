@@ -23,10 +23,11 @@ ucc_status_t ucc_frag_start_handler(ucc_coll_task_t *parent, /* NOLINT */
     return ucc_schedule_start(&frag->super);
 }
 
-ucc_status_t ucc_schedule_frag_init(ucc_schedule_frag_t *schedule, ucc_context_t *ctx)
+ucc_status_t ucc_schedule_frag_init(ucc_schedule_frag_t *schedule, ucc_coll_args_t *args, //TODO get rid of schedule_frag - just move ptr tasks to schedule
+                                    ucc_base_team_t *team, int n_deps)
 {
     ucc_status_t status;
-    status = ucc_schedule_init(&schedule->super, ctx);
+    status = ucc_schedule_init(&schedule->super, args, team, n_deps);
     if (UCC_OK != status) {
         ucc_error("failed to init schedule");
         return status;
@@ -136,10 +137,7 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
         return UCC_ERR_NO_MEMORY;
     }
 
-    ucc_coll_task_init(&schedule->super.super);
-    if (coll_args) {
-        memcpy(&schedule->args, coll_args, sizeof(*coll_args));
-    }
+    ucc_schedule_init(&schedule->super, &coll_args->args, team, 0);
     schedule->super.n_tasks           = n_frags_total; //TODO compute
     schedule->n_frags                 = n_frags;
     schedule->frag_finalize           = frag_finalize;
@@ -198,14 +196,3 @@ ucc_status_t ucc_dependency_handler(ucc_coll_task_t *parent, /* NOLINT */
     }
     return UCC_OK;
 }
-
-ucc_status_t ucc_coll_task_init_dependent(ucc_coll_task_t *task, int n_deps)
-{
-    ucc_coll_task_init(task);
-    /* task->handlers[UCC_EVENT_COMPLETED] = ucc_dependency_handler; */
-    /* task->handlers[UCC_EVENT_SCHEDULE_STARTED] = ucc_dependency_handler; */
-    task->n_deps_satisfied = 0;
-    task->n_deps           = n_deps;
-    return UCC_OK;
-}
-

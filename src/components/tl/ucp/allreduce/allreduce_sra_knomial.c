@@ -57,7 +57,7 @@ ucc_tl_ucp_allreduce_sra_knomial_finalize(ucc_schedule_frag_t *frag)
 ucc_status_t ucc_tl_ucp_allreduce_sra_knomial_setup_frag(ucc_schedule_pipelined_t *schedule_p,
                                ucc_schedule_frag_t *frag, int frag_num)
 {
-    ucc_coll_args_t *args = &schedule_p->args.args;
+    ucc_coll_args_t *args = &schedule_p->super.super.args;
     ucc_datatype_t     dt        = args->src.info.datatype;
     size_t             dt_size   = ucc_dt_size(dt);
     ucc_coll_args_t *targs    ;
@@ -73,7 +73,7 @@ ucc_status_t ucc_tl_ucp_allreduce_sra_knomial_setup_frag(ucc_schedule_pipelined_
     }
 
     for (i = 0; i < frag->super.n_tasks; i++) {
-        targs = &ucc_derived_of(frag->tasks[i], ucc_tl_ucp_task_t)->args;
+        targs = &frag->tasks[i]->args;
         targs->src.info.buffer = PTR_OFFSET(args->src.info.buffer, offset * dt_size);
         targs->dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, offset * dt_size);
         targs->src.info.count = frag_count;
@@ -95,7 +95,7 @@ ucc_tl_ucp_allreduce_sra_knomial_init_frag(ucc_base_coll_args_t *coll_args,
     ucc_status_t         status;
     ucc_kn_radix_t       radix;
 
-    ucc_schedule_frag_init(schedule, team->context->ucc_context);
+    ucc_schedule_frag_init(schedule, &coll_args->args, team, 0);
     radix = ucc_min(UCC_TL_UCP_TEAM_LIB(tl_team)->cfg.allreduce_sra_kn_radix,
                     tl_team->size);
 
@@ -111,7 +111,7 @@ ucc_tl_ucp_allreduce_sra_knomial_init_frag(ucc_base_coll_args_t *coll_args,
                  "failed to init reduce_scatter_knomial task");
         goto out;
     }
-    ucc_coll_task_init_dependent(task, 1);
+    task->n_deps = 1;
     ucc_schedule_frag_add_task(schedule, task);
     ucc_event_manager_subscribe(&schedule->super.super.em, UCC_EVENT_SCHEDULE_STARTED,
                                 task, ucc_dependency_handler);
@@ -127,7 +127,7 @@ ucc_tl_ucp_allreduce_sra_knomial_init_frag(ucc_base_coll_args_t *coll_args,
                  "failed to init allgather_knomial task");
         goto out;
     }
-    ucc_coll_task_init_dependent(task, 1);
+    task->n_deps = 1;
     ucc_schedule_frag_add_task(schedule, task);
     ucc_event_manager_subscribe(&rs_task->em, UCC_EVENT_COMPLETED, task,
         ucc_dependency_handler);
