@@ -190,11 +190,10 @@ ucc_team_create_cls(ucc_context_t *context, ucc_team_t *team)
     ucc_base_team_params_t b_params;
 
     //TODO check if topo is rqeuired (CL/HIER)
-    if (!team->topo) {
+    if (context->topo && !team->topo) {
         status = ucc_team_topo_init(team, context->topo, &team->topo);
         if (UCC_OK != status) {
-            ucc_error("failed to init team topo");
-            return status;
+            ucc_warn("failed to init team topo");
         }
     }
 

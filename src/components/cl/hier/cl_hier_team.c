@@ -53,9 +53,11 @@ UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
         ucc_derived_of(cl_context, ucc_cl_hier_context_t);
     int                     i;
     ucc_status_t            status;
-
     UCC_CLASS_CALL_SUPER_INIT(ucc_cl_team_t, &ctx->super, params->team);
-
+    if (!params->team->topo) {
+        cl_info(cl_context->lib, "can't create hier team without topology data");
+        return UCC_ERR_INVALID_PARAM;
+    }
     self->pairs[UCC_HIER_PAIR_NODE_UCP].state = UCC_HIER_PAIR_ENABLED;
     self->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp =
         ucc_team_topo_get_sbgp(params->team->topo, UCC_SBGP_NODE);
