@@ -136,4 +136,24 @@ static inline ptrdiff_t ucc_sra_kn_get_offset(size_t count, size_t dt_size,
     return offset;
 }
 
+static uint64_t ucc_knomial_mapper(uint64_t ep, void *cb_ctx) {
+    uint32_t size = (uint32_t)(((uint64_t)cb_ctx) & ((1ULL << 32) - 1));
+    uint32_t radix = (uint32_t)(((uint64_t)cb_ctx) >> 32);
+    return (uint64_t)ucc_sra_kn_get_offset((size_t)size, 1, (ucc_rank_t)ep,
+                                           size, (ucc_kn_radix_t)radix);
+}
+
+static inline ucc_ep_map_t ucc_kn_map_init(ucc_rank_t size, ucc_kn_radix_t radix)
+{
+    ucc_ep_map_t map;
+    if (ucc_is_full_kn_pow(size, radix)) {
+        map.type = UCC_EP_MAP_CB;
+        map.cb.cb = ucc_knomial_mapper;
+        map.cb.cb_ctx = (void*)((((uint64_t)radix) << 32) | ((uint64_t)size));
+    } else {
+        map.type = UCC_EP_MAP_FULL;
+    }
+    return map;
+}
+
 #endif

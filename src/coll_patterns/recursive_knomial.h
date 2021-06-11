@@ -178,4 +178,12 @@ enum {
         };                                                                     \
     } while (0)
 
+static inline int ucc_is_full_kn_pow(ucc_rank_t size, ucc_kn_radix_t radix)
+{
+    while (size > 1) {
+        size /= radix;
+    }
+    return (int)size;
+}
+
 #endif
