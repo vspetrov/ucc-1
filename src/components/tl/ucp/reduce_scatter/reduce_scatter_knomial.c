@@ -196,6 +196,9 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_knomial_start(ucc_coll_task_t *coll_task)
     if (!(UCC_IS_INPLACE(task->args) || (KN_NODE_PROXY == node_type))) {
         task->reduce_scatter_kn.scratch = task->args.dst.info.buffer;
     }
+    if (UCC_IS_INPLACE(task->args)) {
+        task->args.src.info.buffer = task->args.dst.info.buffer;
+    }
     status = ucc_tl_ucp_reduce_scatter_knomial_progress(&task->super);
     if (UCC_INPROGRESS == status) {
         ucc_progress_enqueue(UCC_TL_CORE_CTX(team)->pq, &task->super);
@@ -248,9 +251,6 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_knomial_init_r(
             task->reduce_scatter_kn.scratch_mc_header->addr;
         if (UCC_OK != status) {
             return status;
-        }
-        if (UCC_IS_INPLACE(task->args)) {
-            task->args.src.info.buffer = task->args.dst.info.buffer;
         }
     }
 
