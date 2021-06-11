@@ -8,7 +8,7 @@ extern "C" {
 
 class test_schedule : public ucc::test {
 };
-
+#if 0
 #define CTX() (UccJob::getStaticJob()->procs.begin()->get()->ctx_h)
 
 static ucc_status_t _ucc_task_post(ucc_coll_task_t *task)
@@ -90,3 +90,4 @@ UCC_TEST_F(test_schedule, basic)
     }
     ucc_collective_finalize(&schedule_p->super.super.super);
 }
+#endif
