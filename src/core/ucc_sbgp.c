@@ -33,7 +33,7 @@ static inline ucc_status_t sbgp_create_socket(ucc_team_topo_t *topo, ucc_sbgp_t 
     }
     for (i=0; i<node_sbgp->group_size; i++) {
         r = node_sbgp->rank_map[i];
-        if (ucc_rank_on_local_socket(r, team->topo->topo)) {
+        if (ucc_rank_on_local_socket(r, team)) {
             local_ranks[sock_size] = r;
             if (r == group_rank) {
                 sock_rank = sock_size;
@@ -78,7 +78,7 @@ static inline ucc_status_t sbgp_create_node(ucc_team_topo_t *topo, ucc_sbgp_t *s
         return UCC_ERR_NO_MEMORY;
     }
     for (i=0; i<group_size; i++) {
-        if (ucc_rank_on_local_node(i, team->topo->topo)) {
+        if (ucc_rank_on_local_node(i, team)) {
             if (node_size == max_local_size) {
                 max_local_size *= 2;
                 local_ranks = (int*)realloc(local_ranks, max_local_size*sizeof(int));

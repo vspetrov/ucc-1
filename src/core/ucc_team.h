@@ -81,4 +81,23 @@ ucc_get_team_ep_addr(ucc_context_t *context, ucc_team_t *team, ucc_rank_t rank,
     return NULL;
 }
 
+static inline int ucc_rank_on_local_node(int team_rank, ucc_team_t *team)
+{
+    ucc_proc_info_t *procs    = team->topo->topo->procs;
+    ucc_rank_t       ctx_rank = ucc_ep_map_eval(team->ctx_map, team_rank);
+    return procs[ctx_rank].host_hash == ucc_local_proc.host_hash;
+}
+
+static inline int ucc_rank_on_local_socket(int team_rank, ucc_team_t *team)
+{
+    ucc_rank_t       ctx_rank = ucc_ep_map_eval(team->ctx_map, team_rank);
+    ucc_proc_info_t *proc     = &team->topo->topo->procs[ctx_rank];
+
+    if (ucc_local_proc.socket_id == -1) {
+        return 0;
+    }
+    return proc->host_hash == ucc_local_proc.host_hash &&
+        proc->socket_id == ucc_local_proc.socket_id;
+}
+
 #endif

@@ -35,19 +35,4 @@ ucc_status_t ucc_team_topo_init(ucc_team_t *team, ucc_topo_t *topo,
 void ucc_team_topo_cleanup(ucc_team_topo_t *team_topo);
 ucc_sbgp_t* ucc_team_topo_get_sbgp(ucc_team_topo_t *topo, ucc_sbgp_type_t type);
 
-static inline int ucc_rank_on_local_node(int rank, ucc_topo_t *topo)
-{
-    return topo->procs[rank].host_hash == ucc_local_proc.host_hash;
-}
-
-static inline int ucc_rank_on_local_socket(int rank, ucc_topo_t *topo)
-{
-    if (ucc_local_proc.socket_id == -1) {
-        return 0;
-    }
-    ucc_proc_info_t *proc = &topo->procs[rank];
-    return proc->host_hash == ucc_local_proc.host_hash &&
-        proc->socket_id == ucc_local_proc.socket_id;
-}
-
 #endif
