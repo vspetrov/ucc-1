@@ -167,6 +167,7 @@ ucc_status_t ucc_tl_nccl_coll_init(ucc_base_coll_args_t *coll_args,
 
     task = ucc_mpool_get(&nccl_ctx->req_mp);
     ucc_coll_task_init(&task->super, &coll_args->args, team, 0);
+    task->super.ee = coll_args->ee;
     task->super.finalize = ucc_tl_nccl_coll_finalize;
     task->super.triggered_post = ucc_tl_nccl_triggered_post;
     status = ucc_mc_ee_create_event((void **)&task->completed, UCC_EE_CUDA_STREAM);
@@ -183,6 +184,9 @@ ucc_status_t ucc_tl_nccl_coll_init(ucc_base_coll_args_t *coll_args,
         break;
     case UCC_COLL_TYPE_ALLREDUCE:
         status = ucc_tl_nccl_allreduce_init(task);
+        break;
+    case UCC_COLL_TYPE_REDUCE_SCATTER:
+        status = ucc_tl_nccl_reduce_scatter_init(task);
         break;
     case UCC_COLL_TYPE_ALLTOALL:
         status = ucc_tl_nccl_alltoall_init(task);
