@@ -113,6 +113,7 @@ typedef struct ucc_base_coll_args {
     uint64_t        mask;
     ucc_coll_args_t args;
     ucc_team_t     *team;
+    ucc_ee_h        ee;
 } ucc_base_coll_args_t;
 
 typedef ucc_status_t (*ucc_base_coll_init_fn_t)(ucc_base_coll_args_t *coll_args,

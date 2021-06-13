@@ -92,9 +92,9 @@ ucc_status_t ucc_mc_reduce_multi(void *src1, void *src2, void *dst,
                                  ucc_datatype_t dtype, ucc_reduction_op_t op,
                                  ucc_memory_type_t mem_type);
 ucc_status_t ucc_mc_reduce_multi_nb(void *src1, void *src2, void *dst,
-                                 size_t count, size_t size, size_t stride,
-                                 ucc_datatype_t dtype, ucc_reduction_op_t op,
-                                    ucc_memory_type_t mem_type, void **req);
+                                    size_t count, size_t size, size_t stride,
+                                    ucc_datatype_t dtype, ucc_reduction_op_t op,
+                                    ucc_memory_type_t mem_type, ucc_ee_h ee, void **req);
 ucc_status_t ucc_mc_reduce_req_test(void *req, ucc_memory_type_t mem_type);
 ucc_status_t ucc_mc_reduce_req_free(void *req, ucc_memory_type_t mem_type);
 
@@ -128,18 +128,21 @@ static inline ucc_status_t ucc_dt_reduce_multi(void *src1, void *src2,
 }
 
 static inline ucc_status_t ucc_dt_reduce_multi_nb(void *src1, void *src2,
-                                               void *dst, size_t size,
-                                               size_t count, size_t stride,
-                                               ucc_datatype_t dt,
-                                               ucc_memory_type_t mem_type,
-                                                  ucc_coll_args_t *args, void **req)
+                                                  void *dst, size_t size,
+                                                  size_t count, size_t stride,
+                                                  ucc_datatype_t dt,
+                                                  ucc_memory_type_t mem_type,
+                                                  ucc_coll_args_t *args,
+                                                  ucc_ee_h ee, void **req)
 {
     if (args->mask & UCC_COLL_ARGS_FIELD_USERDEFINED_REDUCTIONS) {
         return UCC_ERR_NOT_SUPPORTED; //TODO
     } else {
         return ucc_mc_reduce_multi_nb(src1, src2, dst, size, count, stride,
-                                   dt, args->reduce.predefined_op, mem_type, req);
+                                      dt, args->reduce.predefined_op, mem_type, ee, req);
     }
 }
 
+ucc_status_t ucc_mc_ee_get(ucc_ee_h *ee, ucc_ee_type_t ee_type);
+ucc_status_t ucc_mc_ee_put(ucc_ee_h ee, ucc_ee_type_t ee_type);
 #endif

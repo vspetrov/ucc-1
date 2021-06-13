@@ -83,3 +83,18 @@ void ucc_mpool_hugetlb_free(ucc_mpool_t *mp, void *chunk)
 {
     ucs_mpool_hugetlb_free(&mp->super, chunk);
 }
+
+ucc_status_t ucc_mpool_malloc(ucc_mpool_t *mp, size_t *size_p,
+                              void **chunk_p)
+{
+    *chunk_p = ucc_malloc(*size_p, "mpool malloc");
+    if (!(*chunk_p)) {
+        return UCC_ERR_NO_MEMORY;
+    }
+    return UCC_OK;
+}
+
+void ucc_mpool_free(ucc_mpool_t *mp, void *chunk)
+{
+    ucc_free(chunk);
+}

@@ -147,7 +147,7 @@ UCC_KN_PHASE_EXTRA:
                                local_data, rbuf, reduce_data,
                                task->send_posted - p->iteration * (radix - 1),
                                local_seg_count, local_seg_count * dt_size, dt,
-                               mem_type, args, &task->reduce_req))) {
+                               mem_type, args, task->super.ee, &task->reduce_req))) {
                 tl_error(UCC_TASK_LIB(task), "failed to perform dt reduction");
                 task->super.super.status = status;
                 return status;
@@ -240,7 +240,7 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_knomial_init_r(
     task->super.post     = ucc_tl_ucp_reduce_scatter_knomial_start;
     task->super.progress = ucc_tl_ucp_reduce_scatter_knomial_progress;
     task->super.finalize = ucc_tl_ucp_reduce_scatter_knomial_finalize;
-
+    task->super.ee       = coll_args->ee;
     ucc_assert(coll_args->args.src.info.mem_type == coll_args->args.dst.info.mem_type);
     ucc_knomial_pattern_init(size, rank, radix, &task->reduce_scatter_kn.p);
 

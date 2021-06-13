@@ -10,6 +10,7 @@ extern "C" {
 
 #include "../mc_cuda.h"
 #include "utils/ucc_math.h"
+#include "core/ucc_ee.h"
 #ifdef __cplusplus
 }
 #endif
@@ -140,13 +141,17 @@ extern "C" {
 ucc_status_t ucc_mc_cuda_reduce_multi_nb(const void *src1, const void *src2,
                                          void *dst, size_t size, size_t count,
                                          size_t stride, ucc_datatype_t dt,
-                                         ucc_reduction_op_t op, void **req)
+                                         ucc_reduction_op_t op,
+                                         ucc_ee_t *ee, void **req)
 {
-    cudaStream_t  stream = ucc_mc_cuda.stream;
+    cudaStream_t  stream =  ucc_mc_cuda.stream;
     size_t        ld     = stride / ucc_dt_size(dt);
     int           th     = MC_CUDA_CONFIG->reduce_num_threads;;
     unsigned long bk     = (count + th - 1)/th;;
 
+    if (ee) {
+        stream = (cudaStream_t)ee->ee_context;
+    }
     if (MC_CUDA_CONFIG->reduce_num_blocks != UCC_ULUNITS_AUTO) {
         bk = ucc_min(bk, MC_CUDA_CONFIG->reduce_num_blocks);
     }

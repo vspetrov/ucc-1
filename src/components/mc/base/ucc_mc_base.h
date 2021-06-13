@@ -89,8 +89,9 @@ typedef struct ucc_mc_ops {
                                  size_t count, size_t size, size_t stride,
                                  ucc_datatype_t dt, ucc_reduction_op_t op);
     ucc_status_t (*reduce_multi_nb)(const void *src1, const void *src2, void *dst,
-                                 size_t count, size_t size, size_t stride,
-                                    ucc_datatype_t dt, ucc_reduction_op_t op, void **req);
+                                    size_t count, size_t size, size_t stride,
+                                    ucc_datatype_t dt, ucc_reduction_op_t op,
+                                    ucc_ee_h ee, void **req);
     ucc_status_t (*reduce_req_test)(void *req);
     ucc_status_t (*reduce_req_free)(void *req);
     ucc_status_t (*memcpy)(void *dst, const void *src, size_t len,
@@ -106,6 +107,8 @@ typedef struct ucc_ee_ops {
     ucc_status_t (*ee_destroy_event)(void *event);
     ucc_status_t (*ee_event_post)(void *ee_context, void *event);
     ucc_status_t (*ee_event_test)(void *event);
+    ucc_status_t (*ee_get)(ucc_ee_h *ee);
+    ucc_status_t (*ee_put)(ucc_ee_h ee);
 } ucc_ee_ops_t;
 
 typedef struct ucc_mc_base {

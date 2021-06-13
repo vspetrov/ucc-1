@@ -272,9 +272,20 @@ static ucc_status_t ucc_mc_cpu_reduce_multi_nb(const void *src1, const void *src
                                             void *dst, size_t size,
                                             size_t count, size_t stride,
                                             ucc_datatype_t dt,
-                                            ucc_reduction_op_t op, void **req)
+                                               ucc_reduction_op_t op, ucc_ee_h ee, void **req)
 {
     return ucc_mc_cpu_reduce_multi(src1, src2, dst, size, count, stride, dt, op);
+}
+
+ucc_status_t ucc_mc_cpu_ee_get(ucc_ee_h *ee)
+{
+    *ee = NULL;
+    return UCC_OK;
+}
+
+ucc_status_t ucc_mc_cpu_ee_put(ucc_ee_h ee)
+{
+    return UCC_OK;
 }
 
 static ucc_status_t ucc_mc_cpu_reduce_req_test(void* req) {
@@ -315,6 +326,9 @@ ucc_mc_cpu_t ucc_mc_cpu = {
     .super.ee_ops.ee_destroy_event = ucc_ee_cpu_destroy_event,
     .super.ee_ops.ee_event_post    = ucc_ee_cpu_event_post,
     .super.ee_ops.ee_event_test    = ucc_ee_cpu_event_test,
+    .super.ee_ops.ee_get = ucc_mc_cpu_ee_get,
+    .super.ee_ops.ee_put = ucc_mc_cpu_ee_put,
+
     .mpool_init_flag               = 0,
 };
 

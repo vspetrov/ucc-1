@@ -149,16 +149,17 @@ ucc_status_t ucc_mc_free(ucc_mc_buffer_header_t *h_ptr,
 }
 
 ucc_status_t ucc_mc_reduce_multi_nb(void *src1, void *src2, void *dst,
-                                 size_t size, size_t count, size_t stride,
-                                 ucc_datatype_t dtype, ucc_reduction_op_t op,
-                                    ucc_memory_type_t mem_type, void **req)
+                                    size_t size, size_t count, size_t stride,
+                                    ucc_datatype_t dtype, ucc_reduction_op_t op,
+                                    ucc_memory_type_t mem_type,
+                                    ucc_ee_h ee, void **req)
 {
     if (count == 0) {
         return UCC_OK;
     }
     UCC_CHECK_MC_AVAILABLE(mem_type);
     return  mc_ops[mem_type]->reduce_multi_nb(src1, src2, dst, size, count, stride,
-                                             dtype, op, req);
+                                              dtype, op, ee, req);
 }
 
 ucc_status_t ucc_mc_reduce_req_test(void *req, ucc_memory_type_t mem_type)
@@ -265,4 +266,16 @@ ucc_status_t ucc_mc_ee_event_test(void *event, ucc_ee_type_t ee_type)
 {
     UCC_CHECK_EE_AVAILABLE(ee_type);
     return ee_ops[ee_type]->ee_event_test(event);
+}
+
+ucc_status_t ucc_mc_ee_get(ucc_ee_h *ee, ucc_ee_type_t ee_type)
+{
+    UCC_CHECK_EE_AVAILABLE(ee_type);
+    return ee_ops[ee_type]->ee_get(ee);
+}
+
+ucc_status_t ucc_mc_ee_put(ucc_ee_h ee, ucc_ee_type_t ee_type)
+{
+    UCC_CHECK_EE_AVAILABLE(ee_type);
+    return ee_ops[ee_type]->ee_put(ee);
 }

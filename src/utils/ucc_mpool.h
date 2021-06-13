@@ -42,6 +42,11 @@ ucc_status_t ucc_mpool_hugetlb_malloc(ucc_mpool_t *mp, size_t *size_p,
 
 void ucc_mpool_hugetlb_free(ucc_mpool_t *mp, void *chunk);
 
+ucc_status_t ucc_mpool_malloc(ucc_mpool_t *mp, size_t *size_p,
+                              void **chunk_p);
+
+void ucc_mpool_free(ucc_mpool_t *mp, void *chunk);
+
 static inline void *ucc_mpool_get(ucc_mpool_t *mp)
 {
     void *ret;

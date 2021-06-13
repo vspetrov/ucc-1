@@ -6,6 +6,7 @@
 
 #include "mc_cuda.h"
 #include "utils/ucc_malloc.h"
+#include "core/ucc_ee.h"
 #include <cuda_runtime.h>
 #include <cuda.h>
 
@@ -95,6 +96,27 @@ static ucc_mpool_ops_t ucc_mc_cuda_stream_req_mpool_ops = {
     .chunk_release = ucc_mc_cuda_stream_req_mpool_chunk_free,
     .obj_init      = ucc_mc_cuda_stream_req_init,
     .obj_cleanup   = NULL
+};
+
+static void ucc_mc_cuda_ee_init(ucc_mpool_t *mp, void *obj, void *chunk)
+{
+    cudaStream_t stream;
+    ucc_ee_t *ee = (ucc_ee_t*) obj;
+    cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking);
+    ee->ee_context = (char*)stream;
+}
+
+static void ucc_mc_cuda_ee_cleanup(ucc_mpool_t *mp, void *obj)
+{
+    ucc_ee_t *ee = (ucc_ee_t*) obj;
+    cudaStreamDestroy((cudaStream_t)ee->ee_context);
+}
+
+static ucc_mpool_ops_t ucc_mc_cuda_ee_mpool_ops = {
+    .chunk_alloc   = ucc_mpool_malloc,
+    .chunk_release = ucc_mpool_free,
+    .obj_init      = ucc_mc_cuda_ee_init,
+    .obj_cleanup   = ucc_mc_cuda_ee_cleanup,
 };
 
 static void ucc_mc_cuda_event_init(ucc_mpool_t *mp, void *obj, void *chunk)
@@ -194,6 +216,16 @@ static ucc_status_t ucc_mc_cuda_init(const ucc_mc_params_t *mc_params)
         UCC_THREAD_MULTIPLE, "CUDA Event Objects");
     if (status != UCC_OK) {
         mc_error(&ucc_mc_cuda.super, "Error to create event pool");
+        return status;
+    }
+
+    /* create request pool */
+    status = ucc_mpool_init(
+        &ucc_mc_cuda.ee_mpool, 0, sizeof(ucc_ee_t), 0,
+        UCC_CACHE_LINE_SIZE, 3, UINT_MAX, &ucc_mc_cuda_ee_mpool_ops,
+        UCC_THREAD_MULTIPLE, "CUDA reduction streams");
+    if (status != UCC_OK) {
+        mc_error(&ucc_mc_cuda.super, "failed to create reduction streams pool");
         return status;
     }
 
@@ -612,6 +644,7 @@ static ucc_status_t ucc_mc_cuda_finalize()
         ucc_mc_cuda.mpool_init_flag     = 0;
         ucc_mc_cuda.super.ops.mem_alloc = ucc_mc_cuda_mem_pool_alloc_with_init;
     }
+    ucc_mpool_cleanup(&ucc_mc_cuda.ee_mpool, 1);
     ucc_spinlock_destroy(&ucc_mc_cuda.mpool_init_spinlock);
     return UCC_OK;
 }
@@ -622,7 +655,19 @@ ucc_status_t ucc_mc_cuda_reduce_multi(const void *src1, const void *src2,
                                          ucc_reduction_op_t op)
 {
     return ucc_mc_cuda_reduce_multi_nb(src1, src2, dst,
-                                       size, count, stride, dt, op, NULL);
+                                       size, count, stride, dt, op, NULL, NULL);
+}
+
+ucc_status_t ucc_mc_cuda_ee_get(ucc_ee_h *ee)
+{
+    *ee = (ucc_ee_h)ucc_mpool_get(&ucc_mc_cuda.ee_mpool);
+    return UCC_OK;
+}
+
+ucc_status_t ucc_mc_cuda_ee_put(ucc_ee_h ee)
+{
+    ucc_mpool_put((void*)ee);
+    return UCC_OK;
 }
 
 ucc_mc_cuda_t ucc_mc_cuda = {
@@ -655,6 +700,8 @@ ucc_mc_cuda_t ucc_mc_cuda = {
     .super.ee_ops.ee_destroy_event = ucc_ee_cuda_destroy_event,
     .super.ee_ops.ee_event_post    = ucc_ee_cuda_event_post,
     .super.ee_ops.ee_event_test    = ucc_ee_cuda_event_test,
+    .super.ee_ops.ee_get = ucc_mc_cuda_ee_get,
+    .super.ee_ops.ee_put = ucc_mc_cuda_ee_put,
     .mpool_init_flag               = 0,
 };
 

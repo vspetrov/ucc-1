@@ -125,7 +125,7 @@ ucc_status_t ucc_collective_init(ucc_coll_args_t *coll_args,
     op_args.mask = 0;
     memcpy(&op_args.args, coll_args, sizeof(ucc_coll_args_t));
     op_args.team = team;
-
+    op_args.ee   = NULL;
     status =
         ucc_coll_score_map_lookup(team->score_map, &op_args, &init, &bteam);
     if (UCC_OK != status) {
