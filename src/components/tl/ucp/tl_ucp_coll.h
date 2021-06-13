@@ -47,6 +47,7 @@ typedef struct ucc_tl_ucp_task {
         struct {
             int                     phase;
             ucc_knomial_pattern_t   p;
+            void                   *sbuf;
         } allgather_kn;
         struct {
             ucc_rank_t              dist;

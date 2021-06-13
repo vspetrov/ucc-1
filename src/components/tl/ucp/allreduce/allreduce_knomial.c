@@ -181,6 +181,7 @@ ucc_status_t ucc_tl_ucp_allreduce_knomial_start(ucc_coll_task_t *coll_task)
                                      cfg.allreduce_kn_radix, size),
                              &task->allreduce_kn.p);
     task->super.super.status = UCC_INPROGRESS;
+    ucc_tl_ucp_task_reset(task);
     status = ucc_tl_ucp_allreduce_knomial_progress(&task->super);
     if (UCC_INPROGRESS == status) {
         ucc_progress_enqueue(UCC_TL_CORE_CTX(team)->pq, &task->super);

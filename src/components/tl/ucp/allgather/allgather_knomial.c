@@ -66,7 +66,7 @@ UCC_KN_PHASE_EXTRA:
         local_seg_offset = ucc_sra_kn_compute_seg_offset(
             block_count, step_radix, local_seg_index);
 
-        sbuf = args->src.info.buffer;
+        sbuf = task->allgather_kn.sbuf;
         rbuf = PTR_OFFSET(sbuf, -local_seg_offset * dt_size);
         for (loop_step = 1; loop_step < radix; loop_step++) {
             peer = ucc_knomial_pattern_get_loop_peer(p, rank, size, loop_step);
@@ -77,7 +77,7 @@ UCC_KN_PHASE_EXTRA:
                                              mem_type, ucc_ep_map_eval(map, peer), team, task),
                           task, out);
         }
-        args->src.info.buffer = rbuf; //TODO will break persistent colls
+        task->allgather_kn.sbuf = rbuf;
 
         for (loop_step = 1; loop_step < radix; loop_step++) {
             peer = ucc_knomial_pattern_get_loop_peer(p, rank, size, loop_step);
@@ -128,7 +128,7 @@ ucc_status_t ucc_tl_ucp_allgather_knomial_start(ucc_coll_task_t *coll_task)
     ucc_coll_args_t   *args  = &coll_task->args;
     ucc_tl_ucp_team_t *team  = TASK_TEAM(task);
     ucc_rank_t         size  = team->size;
-    ucc_kn_radix_t     radix = task->reduce_scatter_kn.p.radix;
+    ucc_kn_radix_t     radix = task->allgather_kn.p.radix;
     ucc_ep_map_t       map   = ucc_kn_map_init(size, radix);
     ucc_rank_t         rank  = ucc_ep_map_eval(map, team->rank);
     ucc_status_t       status;
@@ -136,7 +136,7 @@ ucc_status_t ucc_tl_ucp_allgather_knomial_start(ucc_coll_task_t *coll_task)
     task->allgather_kn.phase = UCC_KN_PHASE_INIT;
     ucc_assert(args->src.info.mem_type == args->dst.info.mem_type);
     ucc_tl_ucp_task_reset(task);
-    ucc_knomial_pattern_init_backward(team->size, rank, radix, &task->reduce_scatter_kn.p);
+    ucc_knomial_pattern_init_backward(team->size, rank, radix, &task->allgather_kn.p);
     offset = ucc_sra_kn_get_offset(args->src.info.count,
                                    ucc_dt_size(args->src.info.datatype),
                                    rank, size, task->allgather_kn.p.radix);
@@ -151,8 +151,8 @@ ucc_status_t ucc_tl_ucp_allgather_knomial_start(ucc_coll_task_t *coll_task)
             return status;
         }
     }
-    /* NO INPLACE persistent will not work TODO */
-    args->src.info.buffer = PTR_OFFSET(args->dst.info.buffer, offset);
+
+    task->allgather_kn.sbuf = PTR_OFFSET(args->dst.info.buffer, offset);
     task->super.super.status   = UCC_INPROGRESS;
 
     status = ucc_tl_ucp_allgather_knomial_progress(&task->super);
