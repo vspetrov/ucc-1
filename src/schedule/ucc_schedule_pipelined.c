@@ -20,7 +20,7 @@ ucc_status_t ucc_frag_start_handler(ucc_coll_task_t *parent, /* NOLINT */
         }
     }
     schedule->n_frags_started++;
-    return ucc_schedule_start(frag);
+    return task->post(task);
 }
 
 static ucc_status_t
@@ -83,6 +83,7 @@ static ucc_status_t ucc_schedule_pipelined_post(ucc_coll_task_t *task)
     schedule_p->super.n_completed_tasks = 0;
     schedule_p->n_frags_started         = 0;
     for (i = 0; i < schedule_p->n_frags; i++) {
+        frags[i]->n_completed_tasks = 0;
         for (j = 0; j < frags[0]->n_tasks; j++) {
             frags[i]->tasks[j]->n_deps = frags[i]->tasks[j]->n_deps_orig;
             frags[i]->tasks[j]->n_deps_satisfied = 0;

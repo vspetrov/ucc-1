@@ -132,6 +132,7 @@ ucc_tl_ucp_allreduce_sra_knomial_init_frag(ucc_base_coll_args_t *coll_args,
     ucc_event_manager_subscribe(&rs_task->em, UCC_EVENT_COMPLETED, task,
         ucc_dependency_handler);
     schedule->super.finalize = ucc_tl_ucp_allreduce_sra_knomial_finalize;
+    schedule->super.post = ucc_tl_ucp_allreduce_sra_knomial_start;
     *frag_p = schedule;
     return UCC_OK;
 out:
