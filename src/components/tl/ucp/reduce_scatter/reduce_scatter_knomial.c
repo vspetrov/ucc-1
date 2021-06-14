@@ -163,11 +163,13 @@ UCC_KN_PHASE_EXTRA:
         task->reduce_req = NULL;
     }
 
-    offset = ucc_sra_kn_get_offset(count, dt_size, rank, size, radix);
+    offset = 0;
+    if (args->coll_type == UCC_COLL_TYPE_ALLREDUCE) {
+        offset = ucc_sra_kn_get_offset(count, dt_size, rank, size, radix);
+    }
     status = ucc_mc_memcpy(PTR_OFFSET(args->dst.info.buffer, offset),
                            task->reduce_scatter_kn.scratch,
                            local_seg_count * dt_size, mem_type, mem_type);
-
     if (UCC_OK != status) {
         return status;
     }
@@ -190,16 +192,22 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_knomial_start(ucc_coll_task_t *coll_task)
     task->super.super.status = UCC_INPROGRESS;
     task->reduce_scatter_kn.phase   = UCC_KN_PHASE_INIT;
     ucc_tl_ucp_task_reset(task);
+
     ucc_knomial_pattern_init(team->size, rank, task->reduce_scatter_kn.p.radix,
                              &task->reduce_scatter_kn.p);
     node_type = task->reduce_scatter_kn.p.node_type;
-    if (!(UCC_IS_INPLACE(*args) || (KN_NODE_PROXY == node_type))) {
+    if (!(UCC_IS_INPLACE(*args) || (KN_NODE_PROXY == node_type) || args->coll_type == UCC_COLL_TYPE_REDUCE_SCATTER)) {
         task->reduce_scatter_kn.scratch = args->dst.info.buffer;
     }
     if (UCC_IS_INPLACE(*args)) {
-        /* breaks persistent */
         args->src.info.buffer = args->dst.info.buffer;
     }
+    /* printf("RS rank %d, size %d, count %zd, sbuf %p, rbuf %p, scratch %p\n", */
+    /*        team->rank, team->size, args->src.info.count, */
+    /*        args->src.info.buffer, args->dst.info.buffer, */
+    /*        task->reduce_scatter_kn.scratch); */
+
+
     status = ucc_tl_ucp_reduce_scatter_knomial_progress(&task->super);
     if (UCC_INPROGRESS == status) {
         ucc_progress_enqueue(UCC_TL_CORE_CTX(team)->pq, &task->super);
@@ -214,7 +222,8 @@ ucc_tl_ucp_reduce_scatter_knomial_finalize(ucc_coll_task_t *coll_task)
     ucc_tl_ucp_task_t *task      = ucc_derived_of(coll_task, ucc_tl_ucp_task_t);
     uint8_t            node_type = task->reduce_scatter_kn.p.node_type;
     ucc_memory_type_t  mem_type  = coll_task->args.src.info.mem_type;
-    if (UCC_IS_INPLACE(coll_task->args) || (KN_NODE_PROXY == node_type)) {
+    if (UCC_IS_INPLACE(coll_task->args) || (KN_NODE_PROXY == node_type) ||
+        coll_task->args.coll_type == UCC_COLL_TYPE_REDUCE_SCATTER) {
         ucc_mc_free(task->reduce_scatter_kn.scratch_mc_header, mem_type);
     }
     return ucc_tl_ucp_coll_finalize(coll_task);
@@ -245,9 +254,12 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_knomial_init_r(
     ucc_knomial_pattern_init(size, rank, radix, &task->reduce_scatter_kn.p);
 
     if (UCC_IS_INPLACE(coll_args->args) ||
-        (KN_NODE_PROXY == task->reduce_scatter_kn.p.node_type)) {
+        (KN_NODE_PROXY == task->reduce_scatter_kn.p.node_type) ||
+        coll_args->args.coll_type == UCC_COLL_TYPE_REDUCE_SCATTER) {
+
         status = ucc_mc_alloc(&task->reduce_scatter_kn.scratch_mc_header,
                               data_size, mem_type);
+        /* printf("rs scratch alloc header %p, size %zd\n", task->reduce_scatter_kn.scratch_mc_header, data_size )        ; */
         task->reduce_scatter_kn.scratch =
             task->reduce_scatter_kn.scratch_mc_header->addr;
         if (UCC_OK != status) {

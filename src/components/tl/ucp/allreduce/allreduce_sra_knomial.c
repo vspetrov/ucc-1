@@ -61,24 +61,29 @@ ucc_status_t ucc_tl_ucp_allreduce_sra_knomial_setup_frag(ucc_schedule_pipelined_
     ucc_datatype_t     dt        = args->src.info.datatype;
     size_t             dt_size   = ucc_dt_size(dt);
     ucc_coll_args_t *targs    ;
-    int i;
     int n_frags = schedule_p->super.n_tasks;
     size_t frag_count = args->src.info.count / n_frags;
     size_t left = args->src.info.count % n_frags;
     size_t offset = frag_num * frag_count + left;
+
 
     if (frag_num < left) {
         frag_count++;
         offset -= left - frag_num;
     }
 
-    for (i = 0; i < frag->n_tasks; i++) {
-        targs = &frag->tasks[i]->args;
-        targs->src.info.buffer = PTR_OFFSET(args->src.info.buffer, offset * dt_size);
-        targs->dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, offset * dt_size);
-        targs->src.info.count = frag_count;
-        targs->dst.info.count = frag_count;
-    }
+    targs = &frag->tasks[0]->args; //REDUCE_SCATTER
+    targs->src.info.buffer = PTR_OFFSET(args->src.info.buffer, offset * dt_size);
+    targs->dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, offset * dt_size);
+    targs->src.info.count = frag_count;
+    targs->dst.info.count = frag_count;
+
+    targs = &frag->tasks[1]->args; //ALLGATHER
+    targs->src.info.buffer = NULL;
+    targs->dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, offset * dt_size);
+    targs->src.info.count = 0;
+    targs->dst.info.count = frag_count;
+
     return UCC_OK;
 }
 

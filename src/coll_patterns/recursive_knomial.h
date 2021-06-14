@@ -180,10 +180,29 @@ enum {
 
 static inline int ucc_is_full_kn_pow(ucc_rank_t size, ucc_kn_radix_t radix)
 {
-    while (size > 1) {
-        size /= radix;
+    ucc_rank_t s = radix;
+    do {
+        s *= radix;
+    } while (s <= size);
+
+    s /= radix;
+    if (size == s /* full tree */) {
+        return 1;
     }
-    return (int)size;
+    return 0;
 }
 
+static inline int ucc_is_full_kn_subtree(ucc_rank_t size, ucc_kn_radix_t radix)
+{
+    ucc_rank_t s = radix;
+    do {
+        s *= radix;
+    } while (s <= size);
+
+    s /= radix;
+    if ((size == s /* full tree */) || ((size % s) == 0 /* full subtre */)) {
+        return 1;
+    }
+    return 0;
+}
 #endif
