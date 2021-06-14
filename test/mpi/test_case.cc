@@ -143,7 +143,7 @@ TestCase::TestCase(ucc_test_team_t &_team, ucc_memory_type_t _mem_type,
     test_skip = TEST_SKIP_NONE;
     args.flags = 0;
     args.mask = 0;
-
+    check_sbuf_mc_header = NULL;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Irecv((void*)progress_buf, 1, MPI_CHAR, rank, 0, MPI_COMM_WORLD,
               &progress_request);
@@ -165,7 +165,7 @@ TestCase::~TestCase()
         UCC_CHECK(ucc_mc_free(rbuf_mc_header, mem_type));
     }
     if (check_sbuf) {
-        UCC_CHECK(ucc_mc_free(check_sbuf_mc_header, mem_type));
+        UCC_CHECK(ucc_mc_free(check_sbuf_mc_header, UCC_MEMORY_TYPE_HOST));
     }
     if (check_rbuf) {
         ucc_free(check_rbuf);
