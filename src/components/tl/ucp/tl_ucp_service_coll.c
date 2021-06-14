@@ -97,6 +97,7 @@ ucc_status_t ucc_tl_ucp_service_allgather(ucc_base_team_t *team, void *sbuf, voi
     task->n_polls = 10; // TODO need a var ?
     task->super.post     = ucc_tl_ucp_allgather_ring_start;
     task->super.progress = ucc_tl_ucp_allgather_ring_progress;
+    task->super.finalize = ucc_tl_ucp_coll_finalize;
     *task_p = &task->super;
 
     status = ucc_tl_ucp_allgather_ring_start(&task->super);
