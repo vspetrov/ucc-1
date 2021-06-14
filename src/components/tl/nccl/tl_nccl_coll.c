@@ -252,12 +252,14 @@ ucc_status_t ucc_tl_nccl_allgather_start(ucc_coll_task_t *coll_task)
     ncclDataType_t      dt     = ucc_to_nccl_dtype[
                                     args->dst.info.datatype];
     ucc_status_t        status = UCC_OK;
-    size_t              count  = args->dst.info.count;
+    size_t              count  = args->dst.info.count / team->size;
 
+    ucc_assert((count % team->size) == 0);
     if (UCC_IS_INPLACE(*args)) {
         src = (void*)((ptrdiff_t)args->dst.info.buffer +
                count * ucc_dt_size(args->dst.info.datatype) * team->rank);
     }
+
     task->super.super.status = UCC_INPROGRESS;
     NCCLCHECK_GOTO(ncclAllGather(src, dst, count, dt, team->nccl_comm, stream),
                    exit_coll, status, UCC_TL_TEAM_LIB(team));
@@ -409,11 +411,11 @@ ucc_status_t ucc_tl_nccl_reduce_scatter_start(ucc_coll_task_t *coll_task)
                                     args->src.info.datatype];
     ncclRedOp_t         op     = ucc_to_nccl_reduce_op[
                                     args->reduce.predefined_op];
-    size_t              count  = args->src.info.count;
+    size_t              count  = args->src.info.count / team->size;
 
     ucc_assert((count % team->size) == 0);
     task->super.super.status = UCC_INPROGRESS;
-    NCCLCHECK_GOTO(ncclReduceScatter(src, dst, count/team->size,
+    NCCLCHECK_GOTO(ncclReduceScatter(src, dst, count,
                                      dt, op, team->nccl_comm,
                                      stream),
                    exit_coll, status, UCC_TL_TEAM_LIB(team));
