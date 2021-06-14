@@ -80,6 +80,7 @@ ucc_status_t ucc_topo_init(ucc_addr_storage_t *storage, ucc_topo_t **_topo)
     if (!topo) {
         return UCC_ERR_NO_MEMORY;
     }
+    topo->n_procs = storage->size;
     topo->procs = (ucc_proc_info_t*)malloc(storage->size*sizeof(ucc_proc_info_t));
     for (i = 0; i < storage->size; i++) {
         h = (ucc_context_addr_header_t*)PTR_OFFSET(storage->storage,
