@@ -74,7 +74,7 @@ ucc_status_t ucc_tl_ucp_allgather_ring_start(ucc_coll_task_t *coll_task)
     task->super.super.status     = UCC_INPROGRESS;
     if (!UCC_IS_INPLACE(coll_task->args)) {
         status = ucc_mc_memcpy((void*)((ptrdiff_t)rbuf + data_size *
-                                       ucc_ep_map_eval(task->subset.map, team->rank)),
+                                       task->subset.myrank),
                                sbuf, data_size, rmem, smem);
         if (ucc_unlikely(UCC_OK != status)) {
             return status;
