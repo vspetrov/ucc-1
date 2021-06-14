@@ -6,6 +6,7 @@
 
 #include "cl_hier.h"
 #include "core/ucc_mc.h"
+#include "core/ucc_team.h"
 #include "utils/ucc_coll_utils.h"
 #include "schedule/ucc_schedule_pipelined.h"
 
@@ -26,11 +27,12 @@ static ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_finalize(ucc_coll_task_t *
 {
     ucc_status_t status = UCC_OK;
     ucc_cl_hier_ar_hybrid_frag_t *schedule = ucc_derived_of(task, ucc_cl_hier_ar_hybrid_frag_t);
+    ucc_memory_type_t mt = schedule->super.super.args.src.info.mem_type;
     status = ucc_schedule_finalize(&schedule->super.super);
     int i;
     for (i = 0; i < 3; i++) {
-        ucc_mc_ee_put(schedule->ee[i],
-                              schedule->super.super.args.src.info.mem_type);
+        ucc_mc_ee_put(schedule->ee[i],(mt == UCC_MEMORY_TYPE_CUDA) ?
+                      UCC_EE_CUDA_STREAM : UCC_EE_CPU_THREAD);
     }
 
     ucc_free(schedule);
@@ -49,29 +51,15 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_setup_frag(ucc_schedule_pipelined_t *s
     int n_frags = schedule_p->super.n_tasks;
     size_t frag_count = args->src.info.count / n_frags;
     size_t left = args->src.info.count % n_frags;
-    size_t offset = frag_num * frag_count + left;
-    size_t ar_count;
+    size_t frag_offset = frag_num * frag_count + left;
+    size_t ar_count, offset;
     ucc_coll_task_t *task_rs, *task_ar, *task_ag;
 
     if (frag_num < left) {
         frag_count++;
-        offset -= left - frag_num;
+        frag_offset -= left - frag_num;
     }
-    task_rs = frag->tasks[0];
-    task_ar = frag->tasks[1];
-    task_ag = frag->tasks[2];
 
-    task_rs->args.src.info.buffer = PTR_OFFSET(args->src.info.buffer, offset * dt_size);
-    task_rs->args.dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, offset * dt_size);
-    task_rs->args.src.info.count = frag_count;
-    task_rs->args.dst.info.count = frag_count;
-
-    ucc_assert(UCC_IS_INPLACE(task_ag->args));
-    task_ag->args.dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, offset * dt_size);//only dst since inplace
-    task_ag->args.src.info.count = frag_count;
-    task_ag->args.dst.info.count = frag_count;
-
-    ucc_assert(UCC_IS_INPLACE(task_ar->args));
     ar_count = frag_count / node_size;
     left = frag_count % node_size;
     offset = node_rank * ar_count + left; //offset from RS dst start
@@ -79,9 +67,25 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_setup_frag(ucc_schedule_pipelined_t *s
         ar_count++;
         offset -= left - node_rank;
     }
+
+    task_rs = frag->tasks[0];
+    task_ar = frag->tasks[1];
+    task_ag = frag->tasks[2];
+
+    task_rs->args.src.info.buffer = PTR_OFFSET(args->src.info.buffer, frag_offset * dt_size);
+    task_rs->args.dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, (frag_offset + offset) * dt_size);
+    task_rs->args.src.info.count = frag_count;
+    task_rs->args.dst.info.count = frag_count;
+
+    ucc_assert(UCC_IS_INPLACE(task_ag->args));
+    task_ag->args.dst.info.buffer = PTR_OFFSET(args->dst.info.buffer, frag_offset * dt_size);//only dst since inplace
+    task_ag->args.src.info.count = frag_count;
+    task_ag->args.dst.info.count = frag_count;
+
+    ucc_assert(UCC_IS_INPLACE(task_ar->args));
     task_ar->args.src.info.count = ar_count;
-    task_ar->args.dst.info.buffer = PTR_OFFSET(task_rs->args.dst.info.buffer,
-                                               offset * dt_size);
+    task_ar->args.dst.info.buffer = task_rs->args.dst.info.buffer;
+
     return UCC_OK;
 }
 
@@ -119,8 +123,18 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
         ucc_mc_ee_get(&schedule->ee[i], (mt == UCC_MEMORY_TYPE_CUDA) ?
                       UCC_EE_CUDA_STREAM : UCC_EE_CPU_THREAD);
     }
+
+    count = coll_args->args.src.info.count / node_size;
+    left = coll_args->args.src.info.count % node_size;
+    offset = node_rank * count + left;
+    if (node_rank < left) {
+        count++;
+        offset -= left - node_rank;
+    }
+
     /* REDUCE-SCATTER */
     args.args.coll_type = UCC_COLL_TYPE_REDUCE_SCATTER;
+    args.args.dst.info.buffer = PTR_OFFSET(args.args.dst.info.buffer, offset * dt_size);
     status = ucc_coll_score_map_lookup(cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
@@ -130,16 +144,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
 
     /* ALLREDUCE */
     args.args.coll_type = UCC_COLL_TYPE_ALLREDUCE;
-    count = coll_args->args.src.info.count / node_size;
-    left = coll_args->args.src.info.count % node_size;
-    offset = node_rank * count + left;
-    if (node_rank < left) {
-        count++;
-        offset -= left - node_rank;
-    }
     args.args.src.info.count = count;
-    args.args.dst.info.buffer = PTR_OFFSET(coll_args->args.dst.info.buffer,
-                                           offset * dt_size);
     args.args.mask |= UCC_COLL_ARGS_FIELD_FLAGS;
     args.args.flags |= UCC_COLL_ARGS_FLAG_IN_PLACE;
     status = ucc_coll_score_map_lookup(cl_team->pairs[UCC_HIER_PAIR_NET_UCP].score_map,
@@ -151,7 +156,8 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     /* ALLGATHER */
     args.args.coll_type = UCC_COLL_TYPE_ALLGATHER;
     args.args.dst.info.buffer = coll_args->args.dst.info.buffer;
-    args.args.src.info.count = coll_args->args.src.info.count;
+    args.args.dst.info.datatype = coll_args->args.src.info.datatype;
+    args.args.dst.info.count = coll_args->args.src.info.count;
     status = ucc_coll_score_map_lookup(cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
@@ -209,7 +215,6 @@ ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
     int n_frags, pipeline_depth;
     ucc_schedule_pipelined_t *schedule_p;
     get_hybrid_n_frags(coll_args, cl_team, &n_frags, &pipeline_depth);
-
     ucc_schedule_pipelined_init(coll_args, team,
                                 ucc_cl_hier_allreduce_hybrid_frag_init,
                                 ucc_cl_hier_allreduce_hybrid_setup_frag,

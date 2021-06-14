@@ -37,6 +37,7 @@ ucc_status_t ucc_cl_hier_oob_allgather(void *src_buf, void *recv_buf, size_t siz
 ucc_status_t ucc_cl_hier_oob_req_test(void *request)
 {
     ucc_coll_task_t *task = (ucc_coll_task_t*)request;
+    ucc_context_progress(task->team->context->ucc_context);
     return task->super.status;
 }
 
@@ -62,11 +63,12 @@ UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
     self->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp =
         ucc_team_topo_get_sbgp(params->team->topo, UCC_SBGP_NODE);
     ucc_tl_context_get(ctx->super.super.ucc_context,
-                       "ucp", &self->pairs[UCC_HIER_PAIR_NODE_UCP].tl_ctx);
+                       "nccl", &self->pairs[UCC_HIER_PAIR_NODE_UCP].tl_ctx);
 
     self->pairs[UCC_HIER_PAIR_NET_UCP].state = UCC_HIER_PAIR_ENABLED;
     self->pairs[UCC_HIER_PAIR_NET_UCP].sbgp =
         ucc_team_topo_get_sbgp(params->team->topo, UCC_SBGP_NET);
+    ucc_assert(self->pairs[UCC_HIER_PAIR_NET_UCP].sbgp->status == UCC_SBGP_ENABLED);
     ucc_tl_context_get(ctx->super.super.ucc_context,
                        "ucp", &self->pairs[UCC_HIER_PAIR_NET_UCP].tl_ctx);
     /* ucc_sbgp_print(self->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp); */
@@ -267,7 +269,7 @@ ucc_status_t ucc_cl_hier_team_get_scores(ucc_base_team_t *cl_team,
         return status;
     }
     status = ucc_coll_score_add_range(score, UCC_COLL_TYPE_ALLREDUCE,
-                                      UCC_MEMORY_TYPE_HOST, 65536, UCC_MSG_MAX,
+                                      UCC_MEMORY_TYPE_CUDA, 65536, UCC_MSG_MAX,
                                       UCC_CL_HIER_DEFAULT_SCORE, ucc_cl_hier_allreduce_init,
                                       cl_team);
     if (UCC_OK != status) {
