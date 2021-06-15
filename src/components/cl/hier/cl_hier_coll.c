@@ -206,6 +206,22 @@ static inline void get_hybrid_n_frags(ucc_base_coll_args_t *coll_args,
     /* printf("pd %d, n_fragas %d\n", *pipeline_depth, *n_frags); */
 }
 
+static ucc_status_t ucc_cl_hier_hybrid_allreduce_post(ucc_coll_task_t *task)
+{
+    ucc_schedule_pipelined_t *schedule = ucc_derived_of(task,
+                                                        ucc_schedule_pipelined_t);
+    cl_info(task->team->context->lib,
+            "posting hybrid ar, sbuf %p, rbuf %p, count %zd, dt %s, op %s, "
+             "inplace %d, pdepth %d, frags_total %d",
+             task->args.src.info.buffer, task->args.dst.info.buffer,
+             task->args.src.info.count,
+             ucc_datatype_str(task->args.src.info.datatype),
+             ucc_reduction_op_str(task->args.reduce.predefined_op),
+             UCC_IS_INPLACE(task->args), schedule->n_frags,
+             schedule->super.n_tasks);
+
+    return ucc_schedule_pipelined_post(task);
+}
 
 ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
                                     ucc_base_team_t *team,
@@ -219,6 +235,8 @@ ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
                                 ucc_cl_hier_allreduce_hybrid_frag_init,
                                 ucc_cl_hier_allreduce_hybrid_setup_frag,
                                 pipeline_depth, n_frags, &schedule_p);
+
+    schedule_p->super.super.post = ucc_cl_hier_hybrid_allreduce_post;
     *task = &schedule_p->super.super;
     return UCC_OK;
 }

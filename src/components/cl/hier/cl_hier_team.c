@@ -290,19 +290,22 @@ ucc_status_t ucc_cl_hier_team_get_scores(ucc_base_team_t *cl_team,
     ucc_base_lib_t      *lib  = UCC_CL_TEAM_LIB(team);
     ucc_coll_score_t  *score;
     ucc_status_t       status;
-
+    ucc_memory_type_t mt[2] = {UCC_MEMORY_TYPE_HOST, UCC_MEMORY_TYPE_CUDA};
+    int i;
     status = ucc_coll_score_alloc(&score);
     if (UCC_OK != status) {
         cl_error(lib, "faild to alloc score_t");
         return status;
     }
-    status = ucc_coll_score_add_range(score, UCC_COLL_TYPE_ALLREDUCE,
-                                      UCC_MEMORY_TYPE_CUDA, 65536, UCC_MSG_MAX,
-                                      UCC_CL_HIER_DEFAULT_SCORE, ucc_cl_hier_allreduce_init,
-                                      cl_team);
-    if (UCC_OK != status) {
-        cl_error(lib, "faild to add range to score_t");
-        return status;
+    for (i = 0; i < 2; i++) {
+        status = ucc_coll_score_add_range(score, UCC_COLL_TYPE_ALLREDUCE,
+                                          mt[i], 4096, UCC_MSG_MAX,
+                                          UCC_CL_HIER_DEFAULT_SCORE, ucc_cl_hier_allreduce_init,
+                                          cl_team);
+        if (UCC_OK != status) {
+            cl_error(lib, "faild to add range to score_t");
+            return status;
+        }
     }
     if (strlen(lib->score_str) > 0) {
         status = ucc_coll_score_update_from_str(

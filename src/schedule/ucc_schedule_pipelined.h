@@ -40,4 +40,5 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
 ucc_status_t ucc_dependency_handler(ucc_coll_task_t *parent, /* NOLINT */
                                     ucc_coll_task_t *task);
 
+ucc_status_t ucc_schedule_pipelined_post(ucc_coll_task_t *task);
 #endif

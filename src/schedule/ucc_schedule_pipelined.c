@@ -64,7 +64,6 @@ static ucc_status_t ucc_schedule_pipelined_finalize(ucc_coll_task_t *task)
     ucc_schedule_pipelined_t *schedule_p = ucc_derived_of(task, ucc_schedule_pipelined_t);
     ucc_schedule_t **frags = schedule_p->frags;
     /* printf("schedule pipelined %p is complete\n", schedule_p); */
-
     for (i = 0; i < schedule_p->n_frags; i++) {
         schedule_p->frags[i]->super.finalize(&frags[i]->super);
     }
@@ -73,7 +72,7 @@ static ucc_status_t ucc_schedule_pipelined_finalize(ucc_coll_task_t *task)
     return UCC_OK;
 }
 
-static ucc_status_t ucc_schedule_pipelined_post(ucc_coll_task_t *task)
+ucc_status_t ucc_schedule_pipelined_post(ucc_coll_task_t *task)
 {
     int i, j;
     ucc_schedule_pipelined_t *schedule_p = ucc_derived_of(task, ucc_schedule_pipelined_t);
