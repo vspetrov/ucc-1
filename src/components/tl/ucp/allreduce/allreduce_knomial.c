@@ -219,8 +219,7 @@ ucc_status_t ucc_tl_ucp_allreduce_knomial_finalize(ucc_coll_task_t *coll_task)
     ucc_tl_ucp_task_t *task = ucc_derived_of(coll_task, ucc_tl_ucp_task_t);
     ucc_status_t st, global_st;
 
-    global_st = ucc_mc_free(task->allreduce_kn.scratch_mc_header,
-                            coll_task->args.src.info.mem_type);
+    global_st = ucc_mc_free(task->allreduce_kn.scratch_mc_header);
     if (ucc_unlikely(global_st != UCC_OK)) {
         tl_error(UCC_TASK_LIB(task), "failed to free scratch buffer");
     }
