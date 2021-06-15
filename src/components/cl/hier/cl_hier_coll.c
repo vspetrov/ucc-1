@@ -96,7 +96,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     ucc_cl_hier_team_t    *cl_team = ucc_derived_of(team, ucc_cl_hier_team_t);
     ucc_base_coll_init_fn_t init;
     ucc_base_team_t        *bteam;
-    ucc_status_t            status;
+    ucc_status_t            status = UCC_OK;
     ucc_coll_task_t *task_rs, *task_ag, *task_ar;
     ucc_base_coll_args_t  args;
     ucc_cl_hier_ar_hybrid_frag_t    *schedule = ucc_malloc(sizeof(*schedule), "hier schedule");
@@ -184,7 +184,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     schedule->super.super.finalize = ucc_cl_hier_allreduce_hybrid_frag_finalize;
 
     *frag_p = &schedule->super;
-    return UCC_OK;
+    return status;
 }
 
 static inline void get_hybrid_n_frags(ucc_base_coll_args_t *coll_args,

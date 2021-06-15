@@ -6,6 +6,7 @@
 #include "ucc_sbgp.h"
 #include "ucc_topo.h"
 #include "ucc_team.h"
+#include "utils/ucc_compiler_def.h"
 #include <limits.h>
 
 char* ucc_sbgp_type_str[UCC_SBGP_LAST] = {"undef", "numa", "socket", "node", "node_leaders",
@@ -26,7 +27,7 @@ static inline ucc_status_t sbgp_create_socket(ucc_team_topo_t *topo, ucc_sbgp_t 
     int sock_rank = 0, sock_size = 0, i, r, nlr_pos;
     int *local_ranks;
 
-    assert(node_sbgp->status == UCC_SBGP_ENABLED);
+    ucc_assert(node_sbgp->status == UCC_SBGP_ENABLED);
     local_ranks = (int*)malloc(node_sbgp->group_size*sizeof(int));
     if (!local_ranks) {
         return UCC_ERR_NO_MEMORY;
@@ -219,7 +220,7 @@ static ucc_status_t sbgp_create_socket_leaders(ucc_team_topo_t *topo, ucc_sbgp_t
 
     if (n_socket_leaders > 1) {
         if (i_am_socket_leader) {
-            int sl_rank;
+            int sl_rank = -1;
             sbgp->rank_map = (int*)malloc(sizeof(int)*n_socket_leaders);
             if (!sbgp->rank_map) {
                 free(sl_array);
@@ -242,7 +243,8 @@ static ucc_status_t sbgp_create_socket_leaders(ucc_team_topo_t *topo, ucc_sbgp_t
                     break;
                 }
             }
-            assert(nlr_pos >= 0);
+	    ucc_assert(sl_rank >= 0);
+            ucc_assert(nlr_pos >= 0);
             sbgp->group_rank = sl_rank;
             if (nlr_pos > 0) {
                 if (sl_rank == 0) sbgp->group_rank = nlr_pos;
@@ -264,7 +266,7 @@ static ucc_status_t sbgp_create_socket_leaders(ucc_team_topo_t *topo, ucc_sbgp_t
 
 ucc_status_t ucc_sbgp_create(ucc_team_topo_t *topo, ucc_sbgp_type_t type)
 {
-    ucc_status_t status;
+    ucc_status_t status = UCC_OK;
     ucc_team_t *team = topo->team;
     ucc_sbgp_t  *sbgp = &topo->sbgps[type];
 
@@ -285,14 +287,14 @@ ucc_status_t ucc_sbgp_create(ucc_team_topo_t *topo, ucc_sbgp_type_t type)
         }
         break;
     case UCC_SBGP_NODE_LEADERS:
-        assert(UCC_SBGP_DISABLED != topo->sbgps[UCC_SBGP_NODE].status);
+        ucc_assert(UCC_SBGP_DISABLED != topo->sbgps[UCC_SBGP_NODE].status);
         status = sbgp_create_node_leaders(topo, sbgp, topo->node_leader_rank_id);
         break;
     case UCC_SBGP_NET:
         if (topo->sbgps[UCC_SBGP_NODE].status == UCC_SBGP_NOT_INIT) {
             ucc_sbgp_create(topo, UCC_SBGP_NODE);
         }
-        assert(UCC_SBGP_DISABLED != topo->sbgps[UCC_SBGP_NODE].status);
+        ucc_assert(UCC_SBGP_DISABLED != topo->sbgps[UCC_SBGP_NODE].status);
         status = sbgp_create_node_leaders(topo, sbgp,
                                           topo->sbgps[UCC_SBGP_NODE].group_rank);
         break;

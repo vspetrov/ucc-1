@@ -56,7 +56,7 @@ static int parse_cpuset_file(FILE *file, int* nr_psbl_cpus) {
 ucc_status_t ucc_get_bound_socket_id(int *socketid) {
     cpu_set_t *cpuset = NULL;
     int        sockid = -1, sockid2 = -1;
-    int        try, i, n_sockets, cpu, nr_cpus, nr_psbl_cpus;
+    int        try, i, n_sockets, cpu, nr_cpus, nr_psbl_cpus = 0;
     size_t     setsize;
     FILE      *fptr, *possible;
     char       str[1024];
