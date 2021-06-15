@@ -165,7 +165,6 @@ ucc_status_t ucc_cl_hier_team_destroy(ucc_base_team_t *cl_team)
     ucc_cl_hier_context_t *ctx     = UCC_CL_HIER_TEAM_CTX(team);
     ucc_status_t            status  = UCC_OK;
     int                     i, j;
-    struct ucc_team_team_desc *d;
     ucc_hier_sbgp_t *hs;
 
 
@@ -178,14 +177,13 @@ ucc_status_t ucc_cl_hier_team_destroy(ucc_base_team_t *cl_team)
         }
         team->team_create_req->n_teams       = 0;
         for (i = 0; i < UCC_HIER_SBGP_LAST; i++) {
-            d = &team->team_create_req->descs[team->team_create_req->n_teams];
             hs = &team->sbgps[i];
             if (hs->state == UCC_HIER_SBGP_ENABLED) {
                 ucc_coll_score_free_map(hs->score_map);
                 for (j = 0; j < hs->n_tls; j++) {
                     ucc_tl_context_put(hs->tl_ctxs[j]);
-                    d->team = hs->tl_teams[j];
-                    team->team_create_req->n_teams++;
+                    team->team_create_req->descs[team->team_create_req->n_teams++].team = 
+                        hs->tl_teams[j];
                 }
             }
         }

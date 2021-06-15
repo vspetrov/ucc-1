@@ -256,6 +256,7 @@ ucc_status_t ucc_tl_ucp_alg_id_to_init(int alg_id, const char *alg_id_str,
                                        ucc_base_coll_init_fn_t *init)
 {
     ucc_status_t status = UCC_OK;
+//    printf("%s, id str %s, id %d\n", __FUNCTION__, alg_id_str, alg_id);
     if (alg_id_str) {
         alg_id = alg_id_from_str(coll_type, alg_id_str);
     }
