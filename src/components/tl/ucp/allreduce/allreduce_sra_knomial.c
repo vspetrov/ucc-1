@@ -109,6 +109,13 @@ ucc_tl_ucp_allreduce_sra_knomial_init_frag(ucc_base_coll_args_t *coll_args,
         radix = 2;
     }
 
+    /* for inplace AR user might set only src however for the
+       inplace allgather below we will need everything in dst since
+       it is inplace */
+
+    args.args.dst.info.datatype = args.args.src.info.datatype;
+    args.args.dst.info.mem_type = args.args.src.info.mem_type;
+    args.args.dst.info.count = args.args.src.info.count;
     /* 1st step of allreduce: knomial reduce_scatter */
     status = ucc_tl_ucp_reduce_scatter_knomial_init_r(&args, team, &task, radix);
     if (UCC_OK != status) {

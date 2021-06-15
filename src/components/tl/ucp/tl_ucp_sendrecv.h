@@ -79,6 +79,8 @@ static inline ucc_status_t ucc_tl_ucp_send_nb(void *buffer, size_t msglen,
     req_param.cb.send     = ucc_tl_ucp_send_completion_cb;
     req_param.memory_type = ucc_memtype_to_ucs[mtype];
     req_param.user_data   = (void *)task;
+    /* printf("send to %d, team id %d, scope %d, scope id %d, len %zd, tag %llx\n", */
+           /* dest_group_rank, team->id, team->scope, team->scope_id, msglen, (unsigned long long) ucp_tag); */
     ucp_status = ucp_tag_send_nbx(ep, buffer, 1, ucp_tag, &req_param);
     task->send_posted++;
     if (UCC_OK != ucp_status) {
@@ -108,6 +110,9 @@ static inline ucc_status_t ucc_tl_ucp_recv_nb(void *buffer, size_t msglen,
     req_param.cb.recv     = ucc_tl_ucp_recv_completion_cb;
     req_param.memory_type = ucc_memtype_to_ucs[mtype];
     req_param.user_data   = (void *)task;
+    /* printf("recv from %d, team id %d, scope %d, scope id %d, len %zd, tag %llx\n", */
+    /*        dest_group_rank, team->id, team->scope, team->scope_id, msglen, (unsigned long long) ucp_tag); */
+
     ucp_status = ucp_tag_recv_nbx(UCC_TL_UCP_WORKER(team), buffer, 1, ucp_tag,
                                   ucp_tag_mask, &req_param);
     task->recv_posted++;
