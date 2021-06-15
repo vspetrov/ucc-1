@@ -21,12 +21,19 @@ typedef struct ucc_cl_hier_iface {
 /* Extern iface should follow the pattern: ucc_cl_<cl_name> */
 extern ucc_cl_hier_iface_t ucc_cl_hier;
 
+typedef enum {
+    UCC_HIER_SBGP_NODE,
+    UCC_HIER_SBGP_NET,
+    UCC_HIER_SBGP_LAST,
+} ucc_hier_sbgp_type_t;
+
 typedef struct ucc_cl_hier_lib_config {
     ucc_cl_lib_config_t super;
     uint32_t            allreduce_hybrid_n_frags;
     uint32_t            allreduce_hybrid_pipeline_depth;
     size_t              allreduce_hybrid_frag_thresh;
     size_t              allreduce_hybrid_frag_size;
+    ucc_config_names_array_t sbgp_tls[UCC_HIER_SBGP_LAST];
 } ucc_cl_hier_lib_config_t;
 
 typedef struct ucc_cl_hier_context_config {
@@ -49,30 +56,29 @@ UCC_CLASS_DECLARE(ucc_cl_hier_context_t, const ucc_base_context_params_t *,
                   const ucc_base_config_t *);
 
 typedef enum {
-    UCC_HIER_PAIR_DISABLED,
-    UCC_HIER_PAIR_ENABLED
-} ucc_hier_pair_state_t;
+    UCC_HIER_SBGP_DISABLED,
+    UCC_HIER_SBGP_ENABLED
+} ucc_hier_sbgp_state_t;
 
-typedef struct ucc_hier_pair {
-    ucc_hier_pair_state_t state;
-    ucc_tl_team_t *tl_team;
-    ucc_tl_context_t *tl_ctx;
-    ucc_sbgp_t    *sbgp;
-    ucc_score_map_t *score_map;
-} ucc_hier_pair_t;
+#define CL_HIER_MAX_SBGP_TLS 4
 
-typedef enum {
-    UCC_HIER_PAIR_NODE_UCP,
-    UCC_HIER_PAIR_NET_UCP,
-    UCC_HIER_PAIR_LAST,
-} ucc_hier_pair_type_t;
+typedef struct ucc_hier_sbgp {
+    ucc_hier_sbgp_state_t     state;
+    ucc_sbgp_type_t           sbgp_type;
+    ucc_sbgp_t               *sbgp;
+    ucc_score_map_t          *score_map;
+    ucc_coll_score_t         *score;
+    ucc_tl_team_t            *tl_teams[CL_HIER_MAX_SBGP_TLS];
+    ucc_tl_context_t         *tl_ctxs[CL_HIER_MAX_SBGP_TLS];
+    int                       n_tls;
+} ucc_hier_sbgp_t;
 
 typedef struct ucc_cl_hier_team {
     ucc_cl_team_t            super;
     ucc_team_multiple_req_t *team_create_req;
     unsigned                 n_tl_teams;
     ucc_coll_score_t        *score;
-    ucc_hier_pair_t          pairs[UCC_HIER_PAIR_LAST];
+    ucc_hier_sbgp_t          sbgps[UCC_HIER_SBGP_LAST];
 } ucc_cl_hier_team_t;
 UCC_CLASS_DECLARE(ucc_cl_hier_team_t, ucc_base_context_t *,
                   const ucc_base_team_params_t *);

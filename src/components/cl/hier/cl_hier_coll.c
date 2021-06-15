@@ -46,8 +46,8 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_setup_frag(ucc_schedule_pipelined_t *s
     ucc_cl_hier_team_t    *cl_team = ucc_derived_of(schedule_p->super.super.team, ucc_cl_hier_team_t);
     ucc_datatype_t   dt        = args->src.info.datatype;
     size_t           dt_size   = ucc_dt_size(dt);
-    ucc_rank_t       node_size = cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp->group_size;
-    ucc_rank_t       node_rank = cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp->group_rank;
+    ucc_rank_t       node_size = cl_team->sbgps[UCC_HIER_SBGP_NODE].sbgp->group_size;
+    ucc_rank_t       node_rank = cl_team->sbgps[UCC_HIER_SBGP_NODE].sbgp->group_rank;
     int n_frags = schedule_p->super.n_tasks;
     size_t frag_count = args->src.info.count / n_frags;
     size_t left = args->src.info.count % n_frags;
@@ -101,8 +101,8 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     ucc_base_coll_args_t  args;
     ucc_cl_hier_ar_hybrid_frag_t    *schedule = ucc_malloc(sizeof(*schedule), "hier schedule");
     size_t count, left, offset;
-    ucc_rank_t node_size = cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp->group_size;
-    ucc_rank_t node_rank = cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp->group_rank;
+    ucc_rank_t node_size = cl_team->sbgps[UCC_HIER_SBGP_NODE].sbgp->group_size;
+    ucc_rank_t node_rank = cl_team->sbgps[UCC_HIER_SBGP_NODE].sbgp->group_rank;
     size_t dt_size = ucc_dt_size(coll_args->args.src.info.datatype);
     ucc_memory_type_t mt = coll_args->args.src.info.mem_type;
 
@@ -135,7 +135,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     /* REDUCE-SCATTER */
     args.args.coll_type = UCC_COLL_TYPE_REDUCE_SCATTER;
     args.args.dst.info.buffer = PTR_OFFSET(args.args.dst.info.buffer, offset * dt_size);
-    status = ucc_coll_score_map_lookup(cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].score_map,
+    status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NODE].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
     args.ee = schedule->ee[0];
@@ -147,7 +147,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     args.args.src.info.count = count;
     args.args.mask |= UCC_COLL_ARGS_FIELD_FLAGS;
     args.args.flags |= UCC_COLL_ARGS_FLAG_IN_PLACE;
-    status = ucc_coll_score_map_lookup(cl_team->pairs[UCC_HIER_PAIR_NET_UCP].score_map,
+    status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NET].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
     args.ee = schedule->ee[1];
@@ -158,7 +158,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     args.args.dst.info.buffer = coll_args->args.dst.info.buffer;
     args.args.dst.info.datatype = coll_args->args.src.info.datatype;
     args.args.dst.info.count = coll_args->args.src.info.count;
-    status = ucc_coll_score_map_lookup(cl_team->pairs[UCC_HIER_PAIR_NODE_UCP].score_map,
+    status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NODE].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
     args.ee = schedule->ee[2];

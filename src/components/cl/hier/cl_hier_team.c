@@ -52,86 +52,92 @@ UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
 {
     ucc_cl_hier_context_t *ctx =
         ucc_derived_of(cl_context, ucc_cl_hier_context_t);
-    int                     i;
+    ucc_cl_hier_lib_t *lib = ucc_derived_of(cl_context->lib, ucc_cl_hier_lib_t);
+    int                     i, j;
     ucc_status_t            status;
+    ucc_hier_sbgp_t *hs;
+    ucc_config_names_array_t *tls;
+
     UCC_CLASS_CALL_SUPER_INIT(ucc_cl_team_t, &ctx->super, params->team);
     if (!params->team->topo) {
         cl_info(cl_context->lib, "can't create hier team without topology data");
         return UCC_ERR_INVALID_PARAM;
     }
-    self->pairs[UCC_HIER_PAIR_NODE_UCP].state = UCC_HIER_PAIR_ENABLED;
-    self->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp =
-        ucc_team_topo_get_sbgp(params->team->topo, UCC_SBGP_NODE);
-    ucc_tl_context_get(ctx->super.super.ucc_context,
-                       "nccl", &self->pairs[UCC_HIER_PAIR_NODE_UCP].tl_ctx);
+    self->sbgps[UCC_HIER_SBGP_NODE].state = UCC_HIER_SBGP_ENABLED;
+    self->sbgps[UCC_HIER_SBGP_NODE].sbgp_type = UCC_SBGP_NODE;
+    self->sbgps[UCC_HIER_SBGP_NET].state = UCC_HIER_SBGP_ENABLED;
+    self->sbgps[UCC_HIER_SBGP_NET].sbgp_type = UCC_SBGP_NET;
+    int n_sbgp_teams = 0;
+    for (i = 0; i < UCC_HIER_SBGP_LAST; i++) {
+        hs = &self->sbgps[i];
+        hs->score = NULL;
+        if (hs->state == UCC_HIER_SBGP_ENABLED) {
+            hs->sbgp = ucc_team_topo_get_sbgp(params->team->topo,
+                                              hs->sbgp_type);
+            if (hs->sbgp->status != UCC_SBGP_ENABLED) {
+                cl_debug(cl_context->lib, "sbgp %s is not enabled",
+                          ucc_sbgp_type_str[hs->sbgp_type]);
+                hs->state = UCC_HIER_SBGP_DISABLED;
+            }
+            hs->n_tls = 0;
+            tls = &lib->cfg.sbgp_tls[i];
+            for (j = 0; j < tls->count; j++) {
+                status = ucc_tl_context_get(ctx->super.super.ucc_context,
+                                            tls->names[j], &hs->tl_ctxs[hs->n_tls]);
+                if (UCC_OK != status) {
+                    cl_warn(cl_context->lib, "tl context %s is not available for sbgp %s",
+                             tls->names[j], ucc_sbgp_type_str[hs->sbgp_type]);
+                } else {
+                    hs->n_tls++;
+                    n_sbgp_teams++;
+                }
 
-    self->pairs[UCC_HIER_PAIR_NET_UCP].state = UCC_HIER_PAIR_ENABLED;
-    self->pairs[UCC_HIER_PAIR_NET_UCP].sbgp =
-        ucc_team_topo_get_sbgp(params->team->topo, UCC_SBGP_NET);
-    ucc_assert(self->pairs[UCC_HIER_PAIR_NET_UCP].sbgp->status == UCC_SBGP_ENABLED);
-    ucc_tl_context_get(ctx->super.super.ucc_context,
-                       "ucp", &self->pairs[UCC_HIER_PAIR_NET_UCP].tl_ctx);
-    /* ucc_sbgp_print(self->pairs[UCC_HIER_PAIR_NODE_UCP].sbgp); */
-    /* ucc_sbgp_print(self->pairs[UCC_HIER_PAIR_NET_UCP].sbgp); */
-    int n_teams = 0;
-    for (i = 0; i < UCC_HIER_PAIR_LAST; i++) {
-        if (self->pairs[i].state == UCC_HIER_PAIR_ENABLED) {
-            n_teams++;
+            }
         }
     }
-
-    self->n_tl_teams = 0;
-    status           = ucc_team_multiple_req_alloc(&self->team_create_req,
-                                                   n_teams);
+    status = ucc_team_multiple_req_alloc(&self->team_create_req,
+                                         n_sbgp_teams);
     if (UCC_OK != status) {
         cl_error(cl_context->lib, "failed to allocate team req multiple");
         goto err;
     }
-    int j = 0;
 
-    for (i = 0; i < UCC_HIER_PAIR_LAST; i++) {
-        if (self->pairs[i].state == UCC_HIER_PAIR_ENABLED) {
-            /* memcpy(&self->team_create_req->descs[j].param, params, */
-            /* sizeof(ucc_base_team_params_t)); */
-
-            self->team_create_req->descs[j].param.team =
-                params->team;
-            self->team_create_req->descs[j].param.rank =
-                self->pairs[i].sbgp->group_rank;
-            self->team_create_req->descs[j].param.params.team_size =
-                self->pairs[i].sbgp->group_size;
-            self->team_create_req->descs[j].param.params.mask =
-                UCC_TEAM_PARAM_FIELD_EP_RANGE |
-                UCC_TEAM_PARAM_FIELD_EP |
-                UCC_TEAM_PARAM_FIELD_TEAM_SIZE |
-                UCC_TEAM_PARAM_FIELD_OOB;
-            self->team_create_req->descs[j].param.params.ep =
-                (uint64_t)self->pairs[i].sbgp->group_rank;
-            self->team_create_req->descs[j].param.params.ep_range =
-                UCC_COLLECTIVE_EP_RANGE_CONTIG;
-            self->team_create_req->descs[j].ctx            =
-                self->pairs[i].tl_ctx;
-            self->team_create_req->descs[j].param.scope    = UCC_CL_HIER;
-            self->team_create_req->descs[j].param.id =
-                params->id;
-            self->team_create_req->descs[j].param.scope_id =
-                self->pairs[i].sbgp->type;
-            self->team_create_req->descs[j].param.map.type = UCC_EP_MAP_ARRAY;
-            self->team_create_req->descs[j].param.map.array.map =
-                self->pairs[i].sbgp->rank_map;
-            self->team_create_req->descs[j].param.map.array.elem_size =
-                sizeof(ucc_rank_t);
-            self->team_create_req->descs[j].param.map.ep_num =
-                self->pairs[i].sbgp->group_size;
-            self->team_create_req->descs[j].param.params.oob.allgather = ucc_cl_hier_oob_allgather;
-            self->team_create_req->descs[j].param.params.oob.req_test = ucc_cl_hier_oob_req_test;
-            self->team_create_req->descs[j].param.params.oob.req_free = ucc_cl_hier_oob_req_free;
-            self->team_create_req->descs[j].param.params.oob.participants = self->pairs[i].sbgp->group_size;
-            self->team_create_req->descs[j].param.params.oob.coll_info = (void*)self->pairs[i].sbgp;
-            j++;
+    int t;
+    j = 0;
+    struct ucc_team_team_desc *d;
+    self->team_create_req->n_teams = n_sbgp_teams;
+    for (i = 0; i < UCC_HIER_SBGP_LAST; i++) {
+        hs = &self->sbgps[i];
+        for (t = 0; t < hs->n_tls; t++) {
+            if (hs->state == UCC_HIER_SBGP_ENABLED) {
+                d = &self->team_create_req->descs[j];
+                d->param.team = params->team;
+                d->param.rank = hs->sbgp->group_rank;
+                d->param.params.team_size = hs->sbgp->group_size;
+                d->param.params.mask = UCC_TEAM_PARAM_FIELD_EP_RANGE |
+                    UCC_TEAM_PARAM_FIELD_EP | UCC_TEAM_PARAM_FIELD_TEAM_SIZE |
+                    UCC_TEAM_PARAM_FIELD_OOB;
+                d->param.params.ep = (uint64_t)hs->sbgp->group_rank;
+                d->param.params.ep_range = UCC_COLLECTIVE_EP_RANGE_CONTIG;
+                d->ctx            = hs->tl_ctxs[t];
+                d->param.scope    = UCC_CL_HIER;
+                d->param.id = params->id;
+                d->param.scope_id = hs->sbgp->type;
+                d->param.map.type = UCC_EP_MAP_ARRAY;
+                d->param.map.array.map = hs->sbgp->rank_map;
+                d->param.map.array.elem_size = sizeof(ucc_rank_t);
+                d->param.map.ep_num = hs->sbgp->group_size;
+                d->param.params.oob.allgather = ucc_cl_hier_oob_allgather;
+                d->param.params.oob.req_test = ucc_cl_hier_oob_req_test;
+                d->param.params.oob.req_free = ucc_cl_hier_oob_req_free;
+                d->param.params.oob.participants = hs->sbgp->group_size;
+                d->param.params.oob.coll_info = (void*)hs->sbgp;
+                d->args[0] = i;
+                d->args[1] = t;
+                j++;
+            }
         }
     }
-    self->team_create_req->n_teams = n_teams;
 
     status = ucc_tl_team_create_multiple(self->team_create_req);
     if (status < 0) {
@@ -159,6 +165,8 @@ ucc_status_t ucc_cl_hier_team_destroy(ucc_base_team_t *cl_team)
     ucc_cl_hier_context_t *ctx     = UCC_CL_HIER_TEAM_CTX(team);
     ucc_status_t            status  = UCC_OK;
     int                     i, j;
+    struct ucc_team_team_desc *d;
+    ucc_hier_sbgp_t *hs;
 
 
     if (NULL == team->team_create_req) {
@@ -168,24 +176,25 @@ ucc_status_t ucc_cl_hier_team_destroy(ucc_base_team_t *cl_team)
             cl_error(ctx->super.super.lib, "failed to allocate team req multiple");
             return status;
         }
-        team->team_create_req->n_teams       = team->n_tl_teams;
-        j = 0;
-        for (i = 0; i < UCC_HIER_PAIR_LAST; i++) {
-            if (team->pairs[i].state == UCC_HIER_PAIR_ENABLED) {
-                ucc_coll_score_free_map(team->pairs[i].score_map);
-                ucc_tl_context_put(team->pairs[i].tl_ctx);
-                team->team_create_req->descs[j].team =
-                    team->pairs[i].tl_team;
-                j++;
+        team->team_create_req->n_teams       = 0;
+        for (i = 0; i < UCC_HIER_SBGP_LAST; i++) {
+            d = &team->team_create_req->descs[team->team_create_req->n_teams];
+            hs = &team->sbgps[i];
+            if (hs->state == UCC_HIER_SBGP_ENABLED) {
+                ucc_coll_score_free_map(hs->score_map);
+                for (j = 0; j < hs->n_tls; j++) {
+                    ucc_tl_context_put(hs->tl_ctxs[j]);
+                    d->team = hs->tl_teams[j];
+                    team->team_create_req->n_teams++;
+                }
             }
         }
     }
-    ucc_assert(j == team->n_tl_teams);
     status = ucc_tl_team_destroy_multiple(team->team_create_req);
     if (UCC_INPROGRESS == status) {
         return status;
     }
-    for (i = 0; i < team->n_tl_teams; i++) {
+    for (i = 0; i < team->team_create_req->n_teams; i++) {
         if (team->team_create_req->descs[i].status != UCC_OK) {
             cl_error(ctx->super.super.lib, "tl team destroy failed (%d)",
                      status);
@@ -202,56 +211,75 @@ ucc_status_t ucc_cl_hier_team_create_test(ucc_base_team_t *cl_team)
     ucc_cl_hier_team_t    *team = ucc_derived_of(cl_team, ucc_cl_hier_team_t);
     ucc_cl_hier_context_t *ctx  = UCC_CL_HIER_TEAM_CTX(team);
     ucc_status_t            status;
-    int                     i, j;
-    ucc_coll_score_t *score;
+    int                     i;
+    ucc_coll_score_t *score, *score_merge;
+    struct ucc_team_team_desc *d;
+    ucc_hier_sbgp_t *hs;
     status = ucc_tl_team_create_multiple(team->team_create_req);
 
-    if (status == UCC_OK) {
-        team->n_tl_teams = 0;
-        j = 0;
-        for (i = 0; i < UCC_HIER_PAIR_LAST; i++) {
-            if (team->pairs[i].state == UCC_HIER_PAIR_ENABLED) {
-                if (team->team_create_req->descs[i].status == UCC_OK) {
-                    team->pairs[i].tl_team =
-                        team->team_create_req->descs[i].team;
-                    status =
-                        UCC_TL_TEAM_IFACE(team->pairs[i].tl_team)
-                        ->team.get_scores(&team->pairs[i].tl_team->super,
-                                          &score);
-                    if (UCC_OK != status) {
-                        cl_error(ctx->super.super.lib, "failed to get tl %s scores",
-                                 UCC_TL_TEAM_IFACE(team->pairs[i].tl_team)->super.name);
-                        team->pairs[i].state = UCC_HIER_PAIR_DISABLED;
-                        continue;
-                        //goto cleanup ?
-                    }
-                    status = ucc_coll_score_build_map(score, &team->pairs[i].score_map);
-                    if (UCC_OK != status) {
-                        cl_error(ctx->super.super.lib, "failed to build score map");
-                        continue;
-                        //goto cleanup ?
-                    }
-                    team->n_tl_teams++;
-                    cl_info(ctx->super.super.lib, "initialized tl %s team",
-                            UCC_TL_CTX_IFACE(team->team_create_req->descs[i].ctx)->
-                            super.name);
+    if (status != UCC_OK) {
+        return status;
+    }
+
+    team->n_tl_teams = 0;
+
+    for (i = 0; i < team->team_create_req->n_teams; i++) {
+        d = &team->team_create_req->descs[i];
+        ucc_hier_sbgp_type_t st = (ucc_hier_sbgp_type_t)d->args[0];
+        int                  tl = (int)d->args[1];
+        hs = &team->sbgps[st];
+        if (d->status == UCC_OK) {
+            hs->tl_teams[tl] = d->team;
+            team->n_tl_teams++;
+            status = UCC_TL_TEAM_IFACE(d->team)->team.get_scores(&d->team->super,
+                                                                 &score);
+            if (UCC_OK != status) {
+                cl_warn(ctx->super.super.lib, "failed to get tl %s scores",
+                        UCC_TL_TEAM_IFACE(d->team)->super.name);
+                continue;
+                //goto cleanup ?
+            }
+            if (hs->score == NULL) {
+                hs->score = score;
+            } else {
+                status = ucc_coll_score_merge(hs->score, score, &score_merge, 1);
+                if (UCC_OK != status) {
+                    cl_warn(ctx->super.super.lib, "failed to merge scores");
                 } else {
-                    cl_error(ctx->super.super.lib, "failed to create tl %s team",
-                            UCC_TL_CTX_IFACE(team->team_create_req->descs[i].ctx)->
-                            super.name);
-                    team->pairs[i].state = UCC_HIER_PAIR_DISABLED;
+                    hs->score = score_merge;
                 }
-                j++;
+            }
+            cl_info(ctx->super.super.lib, "initialized tl %s team for sbgp %s",
+                    UCC_TL_CTX_IFACE(d->ctx)->super.name, ucc_sbgp_type_str[hs->sbgp_type]);
+        } else {
+            cl_error(ctx->super.super.lib, "failed to create tl %s team",
+                     UCC_TL_CTX_IFACE(d->ctx)-> super.name);
+            hs->state = UCC_HIER_SBGP_DISABLED;
+            hs->tl_teams[tl] = NULL;
+            hs->tl_ctxs[tl] = NULL;
+            ucc_tl_context_put(d->ctx);
+        }
+    }
+
+    for (i = 0; i < UCC_HIER_SBGP_LAST; i++) {
+        hs = &team->sbgps[i];
+        if (hs->score == NULL) {
+            cl_error(ctx->super.super.lib,
+                     "no tl teams were created for sbgp %s",
+                     ucc_sbgp_type_str[hs->sbgp_type]);
+            hs->state = UCC_HIER_SBGP_DISABLED;
+        } else {
+            status = ucc_coll_score_build_map(hs->score, &hs->score_map);
+            if (UCC_OK != status) {
+                cl_error(ctx->super.super.lib, "failed to build score map");
+                hs->state = UCC_HIER_SBGP_DISABLED;
             }
         }
-        ucc_team_multiple_req_free(team->team_create_req);
-        team->team_create_req = NULL;
-
-        /* if (0 == team->n_tl_teams) { */
-        /*     cl_error(ctx->super.super.lib, "no tl teams were created"); */
-        /*     return UCC_ERR_NOT_FOUND; */
-        /* } */
     }
+    ucc_team_multiple_req_free(team->team_create_req);
+    team->team_create_req = NULL;
+
+
     return status;
 }
 

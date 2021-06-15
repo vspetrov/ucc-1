@@ -9,7 +9,7 @@
 #include <limits.h>
 
 char* ucc_sbgp_type_str[UCC_SBGP_LAST] = {"undef", "numa", "socket", "node", "node_leaders",
-                                            "socket_leaders", "numa_leaders", "flat"};
+                                          "net", "socket_leaders", "numa_leaders", "flat"};
 
 #define SWAP(_x, _y) do{                        \
         int _tmp   = (_x);                      \
