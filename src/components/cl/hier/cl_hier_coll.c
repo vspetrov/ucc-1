@@ -17,24 +17,34 @@ ucc_status_t ucc_cl_hier_coll_init(ucc_base_coll_args_t *coll_args,
     return UCC_ERR_NOT_IMPLEMENTED;
 }
 
-typedef struct ucc_cl_hier_ar_hybrid_frag {
-    ucc_schedule_t super;
+typedef struct ucc_cl_hier_ar_hybrid_schedule {
+    ucc_schedule_pipelined_t super;
     ucc_ee_h ee[3];
-} ucc_cl_hier_ar_hybrid_frag_t;
+} ucc_cl_hier_ar_hybrid_schedule_t;
 
 
 static ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_finalize(ucc_coll_task_t *task)
 {
     ucc_status_t status = UCC_OK;
-    ucc_cl_hier_ar_hybrid_frag_t *schedule = ucc_derived_of(task, ucc_cl_hier_ar_hybrid_frag_t);
-    ucc_memory_type_t mt = schedule->super.super.args.src.info.mem_type;
-    status = ucc_schedule_finalize(&schedule->super.super);
+    ucc_schedule_t *schedule = ucc_derived_of(task, ucc_schedule_t);
+    status = ucc_schedule_finalize(&schedule->super);
+    ucc_free(schedule);
+    return status;
+}
+
+static ucc_status_t ucc_cl_hier_ar_hybrid_schedule_finalize(ucc_coll_task_t *task)
+{
+    ucc_status_t status = UCC_OK;
+    ucc_cl_hier_ar_hybrid_schedule_t *schedule = ucc_derived_of(task,
+                                                                ucc_cl_hier_ar_hybrid_schedule_t);
+    ucc_memory_type_t mt = schedule->super.super.super.args.src.info.mem_type;
+
     int i;
     for (i = 0; i < 3; i++) {
         ucc_mc_ee_put(schedule->ee[i],(mt == UCC_MEMORY_TYPE_CUDA) ?
                       UCC_EE_CUDA_STREAM : UCC_EE_CPU_THREAD);
     }
-
+    status = ucc_schedule_pipelined_finalize(&schedule->super.super.super);
     ucc_free(schedule);
     return status;
 }
@@ -90,6 +100,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_setup_frag(ucc_schedule_pipelined_t *s
 }
 
 ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_args,
+                                                    ucc_schedule_pipelined_t *sp,
                                                     ucc_base_team_t *team,
                                                     ucc_schedule_t **frag_p)
 {
@@ -99,12 +110,13 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     ucc_status_t            status = UCC_OK;
     ucc_coll_task_t *task_rs, *task_ag, *task_ar;
     ucc_base_coll_args_t  args;
-    ucc_cl_hier_ar_hybrid_frag_t    *schedule = ucc_malloc(sizeof(*schedule), "hier schedule");
+    ucc_schedule_t    *schedule = ucc_malloc(sizeof(*schedule), "hier schedule");
+    ucc_cl_hier_ar_hybrid_schedule_t *sched_hybrid =
+        ucc_derived_of(sp, ucc_cl_hier_ar_hybrid_schedule_t);
     size_t count, left, offset;
     ucc_rank_t node_size = cl_team->sbgps[UCC_HIER_SBGP_NODE].sbgp->group_size;
     ucc_rank_t node_rank = cl_team->sbgps[UCC_HIER_SBGP_NODE].sbgp->group_rank;
     size_t dt_size = ucc_dt_size(coll_args->args.src.info.datatype);
-    ucc_memory_type_t mt = coll_args->args.src.info.mem_type;
 
     /* void *src = UCC_IS_INPLACE(coll_args->args) ? */
         /* coll_args->args.dst.info.buffer : coll_args->args.src.info.buffer; */
@@ -115,14 +127,8 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     ucc_assert(schedule);
 
     memcpy(&args, coll_args, sizeof(args));
-    ucc_schedule_init(&schedule->super, &args.args, team, 0);
-    schedule->super.super.team = team; //TODO move to schedule init
-
-    int i;
-    for (i = 0; i < 3; i++) {
-        ucc_mc_ee_get(&schedule->ee[i], (mt == UCC_MEMORY_TYPE_CUDA) ?
-                      UCC_EE_CUDA_STREAM : UCC_EE_CPU_THREAD);
-    }
+    ucc_schedule_init(schedule, &args.args, team, 0);
+    schedule->super.team = team; //TODO move to schedule init
 
     count = coll_args->args.src.info.count / node_size;
     left = coll_args->args.src.info.count % node_size;
@@ -138,7 +144,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NODE].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
-    args.ee = schedule->ee[0];
+    args.ee = sched_hybrid->ee[0];
     status = init(&args, bteam, &task_rs);
 
 
@@ -150,7 +156,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NET].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
-    args.ee = schedule->ee[1];
+    args.ee = sched_hybrid->ee[1];
     status = init(&args, bteam, &task_ar);
 
     /* ALLGATHER */
@@ -161,29 +167,29 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NODE].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
-    args.ee = schedule->ee[2];
+    args.ee = sched_hybrid->ee[2];
     status = init(&args, bteam, &task_ag);
 
     task_rs->n_deps = 1;
-    ucc_schedule_add_task(&schedule->super, task_rs);
-    ucc_event_manager_subscribe(&schedule->super.super.em, UCC_EVENT_SCHEDULE_STARTED,
+    ucc_schedule_add_task(schedule, task_rs);
+    ucc_event_manager_subscribe(&schedule->super.em, UCC_EVENT_SCHEDULE_STARTED,
                                 task_rs, ucc_dependency_handler);
 
     task_ar->n_deps = 1;
-    ucc_schedule_add_task(&schedule->super, task_ar);
+    ucc_schedule_add_task(schedule, task_ar);
     ucc_event_manager_subscribe(&task_rs->em, UCC_EVENT_COMPLETED,
                                 task_ar, ucc_dependency_handler);
 
     task_ag->n_deps = 1;
-    ucc_schedule_add_task(&schedule->super, task_ag);
+    ucc_schedule_add_task(schedule, task_ag);
     ucc_event_manager_subscribe(&task_ar->em, UCC_EVENT_COMPLETED,
                                 task_ag, ucc_dependency_handler);
 
-    schedule->super.super.post     = ucc_schedule_post;
-    schedule->super.super.progress = NULL;
-    schedule->super.super.finalize = ucc_cl_hier_allreduce_hybrid_frag_finalize;
+    schedule->super.post     = ucc_schedule_post;
+    schedule->super.progress = NULL;
+    schedule->super.finalize = ucc_cl_hier_allreduce_hybrid_frag_finalize;
 
-    *frag_p = &schedule->super;
+    *frag_p = schedule;
     return status;
 }
 
@@ -219,7 +225,6 @@ static ucc_status_t ucc_cl_hier_hybrid_allreduce_post(ucc_coll_task_t *task)
              ucc_reduction_op_str(task->args.reduce.predefined_op),
              UCC_IS_INPLACE(task->args), schedule->n_frags,
              schedule->super.n_tasks);
-
     return ucc_schedule_pipelined_post(task);
 }
 
@@ -229,14 +234,29 @@ ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
 {
     ucc_cl_hier_team_t *cl_team = ucc_derived_of(team, ucc_cl_hier_team_t);
     int n_frags, pipeline_depth;
-    ucc_schedule_pipelined_t *schedule_p;
+    ucc_memory_type_t mt = coll_args->args.src.info.mem_type;
+    ucc_cl_hier_ar_hybrid_schedule_t *schedule =
+        ucc_malloc(sizeof(*schedule), "cl_hier_ar_hybrid_sched");
+    if (!schedule) {
+        cl_error(team->context->lib, "failed to allocate %zd bytes for hybrid schedule",
+                 sizeof(*schedule));
+        return UCC_ERR_NO_MEMORY;
+    }
+    int i;
+    for (i = 0; i < 3; i++) {
+        ucc_mc_ee_get(&schedule->ee[i], (mt == UCC_MEMORY_TYPE_CUDA) ?
+                      UCC_EE_CUDA_STREAM : UCC_EE_CPU_THREAD);
+    }
+
+
     get_hybrid_n_frags(coll_args, cl_team, &n_frags, &pipeline_depth);
     ucc_schedule_pipelined_init(coll_args, team,
                                 ucc_cl_hier_allreduce_hybrid_frag_init,
                                 ucc_cl_hier_allreduce_hybrid_setup_frag,
-                                pipeline_depth, n_frags, &schedule_p);
+                                pipeline_depth, n_frags, &schedule->super);
 
-    schedule_p->super.super.post = ucc_cl_hier_hybrid_allreduce_post;
-    *task = &schedule_p->super.super;
+    schedule->super.super.super.post = ucc_cl_hier_hybrid_allreduce_post;
+    schedule->super.super.super.finalize = ucc_cl_hier_ar_hybrid_schedule_finalize;
+    *task = &schedule->super.super.super;
     return UCC_OK;
 }

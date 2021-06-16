@@ -58,7 +58,7 @@ ucc_schedule_pipelined_completed_handler(ucc_coll_task_t *parent_task, //NOLINT
     return UCC_OK;
 }
 
-static ucc_status_t ucc_schedule_pipelined_finalize(ucc_coll_task_t *task)
+ucc_status_t ucc_schedule_pipelined_finalize(ucc_coll_task_t *task)
 {
     int i;
     ucc_schedule_pipelined_t *schedule_p = ucc_derived_of(task, ucc_schedule_pipelined_t);
@@ -67,8 +67,6 @@ static ucc_status_t ucc_schedule_pipelined_finalize(ucc_coll_task_t *task)
     for (i = 0; i < schedule_p->n_frags; i++) {
         schedule_p->frags[i]->super.finalize(&frags[i]->super);
     }
-    ucc_free(schedule_p);
-
     return UCC_OK;
 }
 
@@ -101,19 +99,11 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
                                          ucc_schedule_frag_setup_fn_t frag_setup,
                                          int n_frags,
                                          int n_frags_total,
-                                         ucc_schedule_pipelined_t **schedule_p)
+                                         ucc_schedule_pipelined_t *schedule)
 {
     int i,j;
     ucc_status_t status;
-    ucc_schedule_pipelined_t *schedule;
     ucc_schedule_t **frags;
-    //TODO use mpool
-    schedule = ucc_malloc(sizeof(*schedule), "piplined_sched");
-    if (!schedule) {
-        ucc_error("failed to allocate %zd bytes for pipelined schedule",
-                  sizeof(*schedule));
-        return UCC_ERR_NO_MEMORY;
-    }
 
     ucc_schedule_init(&schedule->super, &coll_args->args, team, 0);
     schedule->super.n_tasks           = n_frags_total; //TODO compute
@@ -123,7 +113,7 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
     schedule->super.super.post = ucc_schedule_pipelined_post;
     frags                             = schedule->frags;
     for (i = 0; i < n_frags; i++) {
-        status = frag_init(coll_args, team, &frags[i]);
+        status = frag_init(coll_args, schedule, team, &frags[i]);
         if (UCC_OK != status) {
             ucc_error("failed to initialize fragment for pipeline");
             goto err;
@@ -147,7 +137,6 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
         /* printf("frag %p = [ %p %p ]\n", frags[i], frags[i]->tasks[0], frags[i]->tasks[1]); */
     }
     schedule->n_frags_in_pipeline = n_frags;
-    *schedule_p = schedule;
     return UCC_OK;
 err:
     for (i = i - 1; i >= 0; i--) {

@@ -64,6 +64,9 @@ ucc_status_t ucc_tl_nccl_collective_progress(ucc_coll_task_t *coll_task)
 
     status = ucc_mc_ee_event_test(task->completed, UCC_EE_CUDA_STREAM);
     coll_task->super.status = status;
+    /* if (status == UCC_OK) { */
+    /*     printf("completed nccl task %p\n", coll_task); */
+    /* } */
     return status;
 }
 
@@ -207,7 +210,7 @@ ucc_status_t ucc_tl_nccl_allreduce_start(ucc_coll_task_t *coll_task)
     ncclRedOp_t         op     = ucc_to_nccl_reduce_op[
                                     args->reduce.predefined_op];
     size_t              count  = args->src.info.count;
-
+    /* printf("start nccl AR , ts %d, task %p, streawm %p\n", team->size, coll_task, ee->ee_context); */
     task->super.super.status = UCC_INPROGRESS;
     NCCLCHECK_GOTO(ncclAllReduce(src, dst, count, dt, op, team->nccl_comm,
                                  stream),
@@ -253,7 +256,7 @@ ucc_status_t ucc_tl_nccl_allgather_start(ucc_coll_task_t *coll_task)
                                     args->dst.info.datatype];
     ucc_status_t        status = UCC_OK;
     size_t              count  = args->dst.info.count / team->size;
-
+    /* printf("start nccl ag, ts %d, task %p, stream %p\n", team->size, coll_task, ee->ee_context); */
     ucc_assert((count % team->size) == 0);
     if (UCC_IS_INPLACE(*args)) {
         src = (void*)((ptrdiff_t)args->dst.info.buffer +
@@ -415,6 +418,7 @@ ucc_status_t ucc_tl_nccl_reduce_scatter_start(ucc_coll_task_t *coll_task)
 
     ucc_assert((count % team->size) == 0);
     task->super.super.status = UCC_INPROGRESS;
+    /* printf("start nccl rs, ts %d, task %p, stream %p\n", team->size, coll_task, ee->ee_context); */
     NCCLCHECK_GOTO(ncclReduceScatter(src, dst, count,
                                      dt, op, team->nccl_comm,
                                      stream),

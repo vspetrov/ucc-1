@@ -54,6 +54,15 @@ ucc_tl_ucp_allreduce_sra_knomial_finalize(ucc_coll_task_t *frag)
     return status;
 }
 
+ucc_status_t
+ucc_tl_ucp_allreduce_sra_pipelined_finalize(ucc_coll_task_t *task)
+{
+    ucc_status_t status;
+    status = ucc_schedule_pipelined_finalize(task);
+    ucc_free(task);
+    return status;
+}
+
 ucc_status_t ucc_tl_ucp_allreduce_sra_knomial_setup_frag(ucc_schedule_pipelined_t *schedule_p,
                                ucc_schedule_t *frag, int frag_num)
 {
@@ -89,6 +98,7 @@ ucc_status_t ucc_tl_ucp_allreduce_sra_knomial_setup_frag(ucc_schedule_pipelined_
 
 ucc_status_t
 ucc_tl_ucp_allreduce_sra_knomial_init_frag(ucc_base_coll_args_t *coll_args,
+                                           ucc_schedule_pipelined_t *sp, //NOLINT
                                            ucc_base_team_t      *team,
                                            ucc_schedule_t  **frag_p)
 {
@@ -178,11 +188,17 @@ ucc_tl_ucp_allreduce_sra_knomial_init(ucc_base_coll_args_t *coll_args,
 {
     ucc_tl_ucp_team_t *tl_team = ucc_derived_of(team, ucc_tl_ucp_team_t);
     int n_frags, pipeline_depth;
-    ucc_schedule_pipelined_t *schedule_p;
+    ucc_schedule_pipelined_t *schedule_p = ucc_malloc(sizeof(*schedule_p), "sched_pipelined");
+    if (!schedule_p) {
+        tl_error(team->context->lib, "failed to allocate %zd bytes for sra schedule pipelined",
+                 sizeof(*schedule_p));
+        return UCC_ERR_NO_MEMORY;
+    }
     get_sra_n_frags(coll_args, tl_team, &n_frags, &pipeline_depth);
     ucc_schedule_pipelined_init(coll_args, team, ucc_tl_ucp_allreduce_sra_knomial_init_frag,
                                 ucc_tl_ucp_allreduce_sra_knomial_setup_frag,
-                                pipeline_depth, n_frags, &schedule_p);
+                                pipeline_depth, n_frags, schedule_p);
+    schedule_p->super.super.finalize  = ucc_tl_ucp_allreduce_sra_pipelined_finalize;
     *task_h                  = &schedule_p->super.super;
     return UCC_OK;
 }
