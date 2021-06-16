@@ -23,6 +23,7 @@ extern ucc_cl_hier_iface_t ucc_cl_hier;
 
 typedef enum {
     UCC_HIER_SBGP_NODE,
+    UCC_HIER_SBGP_NODE2,
     UCC_HIER_SBGP_NET,
     UCC_HIER_SBGP_LAST,
 } ucc_hier_sbgp_type_t;

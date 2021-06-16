@@ -67,6 +67,8 @@ UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
     self->sbgps[UCC_HIER_SBGP_NODE].sbgp_type = UCC_SBGP_NODE;
     self->sbgps[UCC_HIER_SBGP_NET].state = UCC_HIER_SBGP_ENABLED;
     self->sbgps[UCC_HIER_SBGP_NET].sbgp_type = UCC_SBGP_NET;
+    self->sbgps[UCC_HIER_SBGP_NODE2].state = UCC_HIER_SBGP_ENABLED;
+    self->sbgps[UCC_HIER_SBGP_NODE2].sbgp_type = UCC_SBGP_NODE;
     int n_sbgp_teams = 0;
     for (i = 0; i < UCC_HIER_SBGP_LAST; i++) {
         hs = &self->sbgps[i];

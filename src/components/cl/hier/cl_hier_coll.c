@@ -164,7 +164,7 @@ ucc_status_t ucc_cl_hier_allreduce_hybrid_frag_init(ucc_base_coll_args_t *coll_a
     args.args.dst.info.buffer = coll_args->args.dst.info.buffer;
     args.args.dst.info.datatype = coll_args->args.src.info.datatype;
     args.args.dst.info.count = coll_args->args.src.info.count;
-    status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NODE].score_map,
+    status = ucc_coll_score_map_lookup(cl_team->sbgps[UCC_HIER_SBGP_NODE2].score_map,
                                        &args, &init, &bteam);
     ucc_assert(UCC_OK == status);
     args.ee = sched_hybrid->ee[2];
