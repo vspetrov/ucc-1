@@ -87,6 +87,11 @@ static ucc_config_field_t ucc_tl_ucp_lib_config_table[] = {
      ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_kn_pipeline_depth),
      UCC_CONFIG_TYPE_UINT},
 
+    {"ALLREDUCE_SRA_KN_SEQUENTIAL", "0",
+     "Type of pipelined schedule for sra knomial AR (sequential/parallel)",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_kn_seq),
+     UCC_CONFIG_TYPE_UINT},
+
     {NULL}};
 
 static ucs_config_field_t ucc_tl_ucp_context_config_table[] = {

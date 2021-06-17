@@ -202,10 +202,11 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_knomial_start(ucc_coll_task_t *coll_task)
     if (UCC_IS_INPLACE(*args)) {
         args->src.info.buffer = args->dst.info.buffer;
     }
-    /* printf("RS rank %d, size %d, count %zd, sbuf %p, rbuf %p, scratch %p\n", */
-    /*        team->rank, team->size, args->src.info.count, */
-    /*        args->src.info.buffer, args->dst.info.buffer, */
-    /*        task->reduce_scatter_kn.scratch); */
+    /* static int __count = 0; */
+    /* printf("RS rank %d, size %d, count %zd, sbuf %p, rbuf %p, scratch %p, id %d, tag %u\n", */
+           /* team->rank, team->size, args->src.info.count, */
+           /* args->src.info.buffer, args->dst.info.buffer, */
+           /* task->reduce_scatter_kn.scratch, __count++, task->tag); */
 
 
     status = ucc_tl_ucp_reduce_scatter_knomial_progress(&task->super);

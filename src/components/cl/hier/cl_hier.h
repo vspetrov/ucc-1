@@ -32,6 +32,7 @@ typedef struct ucc_cl_hier_lib_config {
     ucc_cl_lib_config_t super;
     uint32_t            allreduce_hybrid_n_frags;
     uint32_t            allreduce_hybrid_pipeline_depth;
+    uint32_t            allreduce_hybrid_seq;
     size_t              allreduce_hybrid_frag_thresh;
     size_t              allreduce_hybrid_frag_size;
     ucc_config_names_array_t sbgp_tls[UCC_HIER_SBGP_LAST];

@@ -42,6 +42,10 @@
 ucc_status_t ucc_tl_ucp_allreduce_sra_knomial_start(ucc_coll_task_t *coll_task)
 {
     ucc_schedule_t *schedule = ucc_derived_of(coll_task, ucc_schedule_t);
+    /* static int __count = 0; */
+    /* printf("start sra, id %d, task %p, rs tag %u, ag tag %u\n", __count++, coll_task, */
+    /*        ucc_derived_of(schedule->tasks[0], ucc_tl_ucp_task_t)->tag, */
+    /*        ucc_derived_of(schedule->tasks[1], ucc_tl_ucp_task_t)->tag); */
     return ucc_schedule_start(schedule);
 }
 
@@ -187,6 +191,7 @@ ucc_tl_ucp_allreduce_sra_knomial_init(ucc_base_coll_args_t *coll_args,
                                       ucc_coll_task_t     **task_h)
 {
     ucc_tl_ucp_team_t *tl_team = ucc_derived_of(team, ucc_tl_ucp_team_t);
+    ucc_tl_ucp_lib_config_t *cfg = &UCC_TL_UCP_TEAM_LIB(tl_team)->cfg;
     int n_frags, pipeline_depth;
     ucc_schedule_pipelined_t *schedule_p = ucc_malloc(sizeof(*schedule_p), "sched_pipelined");
     if (!schedule_p) {
@@ -197,7 +202,8 @@ ucc_tl_ucp_allreduce_sra_knomial_init(ucc_base_coll_args_t *coll_args,
     get_sra_n_frags(coll_args, tl_team, &n_frags, &pipeline_depth);
     ucc_schedule_pipelined_init(coll_args, team, ucc_tl_ucp_allreduce_sra_knomial_init_frag,
                                 ucc_tl_ucp_allreduce_sra_knomial_setup_frag,
-                                pipeline_depth, n_frags, schedule_p);
+                                pipeline_depth, n_frags, cfg->allreduce_sra_kn_seq,
+                                schedule_p);
     schedule_p->super.super.finalize  = ucc_tl_ucp_allreduce_sra_pipelined_finalize;
     *task_h                  = &schedule_p->super.super;
     return UCC_OK;

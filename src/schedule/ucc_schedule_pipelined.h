@@ -25,7 +25,10 @@ typedef struct ucc_schedule_pipelined {
     int            n_frags;
     int            n_frags_started;
     int            n_frags_in_pipeline;
+    int            sequential;
+    int            next_frag_to_post;
     ucc_schedule_frag_setup_fn_t frag_setup;
+
 } ucc_schedule_pipelined_t;
 
 
@@ -36,6 +39,7 @@ ucc_status_t ucc_schedule_pipelined_init(ucc_base_coll_args_t *coll_args,
                                          ucc_schedule_frag_setup_fn_t frag_setup,
                                          int n_frags,
                                          int n_frags_total,
+                                         int sequential,
                                          ucc_schedule_pipelined_t *schedule_p);
 
 ucc_status_t ucc_dependency_handler(ucc_coll_task_t *parent, /* NOLINT */

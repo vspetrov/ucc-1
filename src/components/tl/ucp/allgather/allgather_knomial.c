@@ -154,9 +154,10 @@ ucc_status_t ucc_tl_ucp_allgather_knomial_start(ucc_coll_task_t *coll_task)
     }
 
     task->allgather_kn.sbuf = PTR_OFFSET(args->dst.info.buffer, offset);
-    /* printf("AG rank %d, size %d, count %zd, sbuf %p, rbuf %p\n", */
+    /* static int __count = 0; */
+    /* printf("AG rank %d, size %d, count %zd, sbuf %p, rbuf %p, id %d, tag %u\n", */
     /*        team->rank, team->size, args->dst.info.count, */
-    /*        args->dst.info.buffer, args->dst.info.buffer); */
+    /*        args->dst.info.buffer, args->dst.info.buffer, __count++, task->tag); */
 
 
     task->super.super.status   = UCC_INPROGRESS;

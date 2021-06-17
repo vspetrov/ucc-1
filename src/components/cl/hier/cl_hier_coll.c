@@ -235,6 +235,7 @@ ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
     ucc_cl_hier_team_t *cl_team = ucc_derived_of(team, ucc_cl_hier_team_t);
     int n_frags, pipeline_depth;
     ucc_memory_type_t mt = coll_args->args.src.info.mem_type;
+    ucc_cl_hier_lib_config_t *cfg = &UCC_CL_HIER_TEAM_LIB(cl_team)->cfg;
     ucc_cl_hier_ar_hybrid_schedule_t *schedule =
         ucc_malloc(sizeof(*schedule), "cl_hier_ar_hybrid_sched");
     if (!schedule) {
@@ -253,7 +254,8 @@ ucc_status_t ucc_cl_hier_allreduce_init(ucc_base_coll_args_t *coll_args,
     ucc_schedule_pipelined_init(coll_args, team,
                                 ucc_cl_hier_allreduce_hybrid_frag_init,
                                 ucc_cl_hier_allreduce_hybrid_setup_frag,
-                                pipeline_depth, n_frags, &schedule->super);
+                                pipeline_depth, n_frags, cfg->allreduce_hybrid_seq,
+                                &schedule->super);
 
     schedule->super.super.super.post = ucc_cl_hier_hybrid_allreduce_post;
     schedule->super.super.super.finalize = ucc_cl_hier_ar_hybrid_schedule_finalize;

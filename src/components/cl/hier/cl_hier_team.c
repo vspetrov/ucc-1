@@ -124,7 +124,7 @@ UCC_CLASS_INIT_FUNC(ucc_cl_hier_team_t, ucc_base_context_t *cl_context,
                 d->ctx            = hs->tl_ctxs[t];
                 d->param.scope    = UCC_CL_HIER;
                 d->param.id = params->id;
-                d->param.scope_id = hs->sbgp->type;
+                d->param.scope_id = i;
                 d->param.map.type = UCC_EP_MAP_ARRAY;
                 d->param.map.array.map = hs->sbgp->rank_map;
                 d->param.map.array.elem_size = sizeof(ucc_rank_t);
