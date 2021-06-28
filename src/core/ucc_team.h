@@ -100,4 +100,7 @@ static inline int ucc_rank_on_local_socket(int team_rank, ucc_team_t *team)
         proc->socket_id == ucc_local_proc.socket_id;
 }
 
+ucc_status_t ucc_coll_triggered_post_common(ucc_ee_h ee, ucc_ev_t *ev, //NOLINT
+                                            ucc_coll_task_t *coll_task);
+
 #endif
