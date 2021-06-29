@@ -168,6 +168,7 @@ ucc_status_t ucc_tl_ucp_triggered_post(ucc_ee_h ee, ucc_ev_t *ev, //NOLINT
     ev_task->super.flags          = UCC_COLL_TASK_FLAG_INTERNAL;
     ev_task->super.finalize       = ucc_tl_ucp_coll_finalize;
     ev_task->super.super.status   = UCC_INPROGRESS;
+    coll_task->super.status       = UCC_INPROGRESS;
 
     tl_info(task->team->super.super.context->lib,
             "triggered post. ev_task:%p coll_task:%p", &ev_task->super, coll_task);
