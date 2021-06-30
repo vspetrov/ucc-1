@@ -42,7 +42,8 @@ allgatherv =                      \
 reduce_scatter =	                        \
 	reduce_scatter/reduce_scatter.c         \
 	reduce_scatter/reduce_scatter.h         \
-	reduce_scatter/reduce_scatter_knomial.c
+	reduce_scatter/reduce_scatter_knomial.c \
+	reduce_scatter/reduce_scatter_ring.c
 
 sources =                 \
 	tl_ucp.h              \

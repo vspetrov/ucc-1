@@ -126,16 +126,16 @@ ucc_status_t ucc_collective_init(ucc_coll_args_t *coll_args,
     op_args.mask = 0;
     memcpy(&op_args.args, coll_args, sizeof(ucc_coll_args_t));
 
-    if (op_args.args.coll_type == UCC_COLL_TYPE_ALLGATHER ||
-        op_args.args.coll_type == UCC_COLL_TYPE_REDUCE_SCATTER) {
-        /* Internally we defined allgather and reduce_scatter "count"
-           to be TOTAL count across ALL the ranks in the team.
-           This way we can use internal RS and AG ops when
-           count % team->size != 0 and still avoid "vector" versions
-           of those collectives */
-        op_args.args.src.info.count *= team->size;
-        op_args.args.dst.info.count *= team->size;
-    }
+    /* if (op_args.args.coll_type == UCC_COLL_TYPE_ALLGATHER || */
+    /*     op_args.args.coll_type == UCC_COLL_TYPE_REDUCE_SCATTER) { */
+    /*     /\* Internally we defined allgather and reduce_scatter "count" */
+    /*        to be TOTAL count across ALL the ranks in the team. */
+    /*        This way we can use internal RS and AG ops when */
+    /*        count % team->size != 0 and still avoid "vector" versions */
+    /*        of those collectives *\/ */
+    /*     op_args.args.src.info.count *= team->size; */
+    /*     op_args.args.dst.info.count *= team->size; */
+    /* } */
     op_args.team = team;
     op_args.ee   = NULL;
     status =

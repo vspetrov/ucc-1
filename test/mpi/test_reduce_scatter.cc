@@ -24,11 +24,10 @@ TestReduceScatter::TestReduceScatter(size_t _msgsize,
     op = _op;
     dt = _dt;
     args.coll_type = UCC_COLL_TYPE_REDUCE_SCATTER;
-
+    count = count - (count % comm_size);
     if (skip_reduce(test_max_size < _msgsize, TEST_SKIP_MEM_LIMIT,
                     team.comm) ||
-        skip_reduce((count % comm_size != 0), TEST_SKIP_NOT_SUPPORTED,
-                    team.comm)) {
+        skip_reduce(count < comm_size, TEST_SKIP_NOT_SUPPORTED, team.comm)) {
         return;
     }
 
@@ -74,13 +73,19 @@ TestReduceScatter::TestReduceScatter(size_t _msgsize,
 
 ucc_status_t TestReduceScatter::check()
 {
-    int comm_rank, comm_size;
+    int comm_rank, comm_size, completed;
+    MPI_Request req;
 
     MPI_Comm_rank(team.comm, &comm_rank);
     MPI_Comm_size(team.comm, &comm_size);
-    MPI_Reduce_scatter(inplace ? MPI_IN_PLACE : check_sbuf, check_rbuf,
+    MPI_Ireduce_scatter(inplace ? MPI_IN_PLACE : check_sbuf, check_rbuf,
                        recvcounts, ucc_dt_to_mpi(dt), ucc_op_to_mpi(op),
-                       team.comm);
+                       team.comm, &req);
+    do {
+        MPI_Test(&req, &completed, MPI_STATUS_IGNORE);
+        ucc_context_progress(team.ctx);
+    } while(!completed);
+
     if (inplace) {
         return compare_buffers(PTR_OFFSET(rbuf, comm_rank * msgsize/comm_size),
                                check_rbuf, recvcounts[0], dt, mem_type);

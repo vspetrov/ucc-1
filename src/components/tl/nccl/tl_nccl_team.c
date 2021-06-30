@@ -185,9 +185,6 @@ ucc_status_t ucc_tl_nccl_coll_init(ucc_base_coll_args_t *coll_args,
     case UCC_COLL_TYPE_ALLREDUCE:
         status = ucc_tl_nccl_allreduce_init(task);
         break;
-    case UCC_COLL_TYPE_REDUCE_SCATTER:
-        status = ucc_tl_nccl_reduce_scatter_init(task);
-        break;
     case UCC_COLL_TYPE_ALLTOALL:
         status = ucc_tl_nccl_alltoall_init(task);
         break;

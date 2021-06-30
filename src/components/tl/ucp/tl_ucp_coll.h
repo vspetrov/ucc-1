@@ -46,6 +46,10 @@ typedef struct ucc_tl_ucp_task {
             ucc_mc_buffer_header_t *scratch_mc_header;
         } reduce_scatter_kn;
         struct {
+            void                   *scratch;
+            ucc_mc_buffer_header_t *scratch_mc_header;
+        } reduce_scatter_ring;
+        struct {
             int                     phase;
             ucc_knomial_pattern_t   p;
             void                   *sbuf;
