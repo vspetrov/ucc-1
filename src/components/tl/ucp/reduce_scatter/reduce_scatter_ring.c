@@ -78,7 +78,14 @@ ucc_tl_ucp_reduce_scatter_ring_progress(ucc_coll_task_t *coll_task)
         inbuf[1] = PTR_OFFSET(inbuf[0], max_real_segsize);
         inbuf[2] = PTR_OFFSET(inbuf[1], max_real_segsize);
     }
-
+    if (task->reduce_req) {
+        if (UCC_OK != ucc_mc_reduce_req_test(task->reduce_req, mem_type)) {
+            return task->super.super.status;
+        }
+        ucc_mc_reduce_req_free(task->reduce_req, mem_type);
+        task->reduce_req = NULL;
+        goto reduce_done;
+    }
     if (UCC_INPROGRESS == ucc_tl_ucp_test_ring(task)) {
         return task->super.super.status;
     }
@@ -102,7 +109,10 @@ ucc_tl_ucp_reduce_scatter_ring_progress(ucc_coll_task_t *coll_task)
             task->super.super.status = status;
             return status;
         }
-
+        if (UCC_OK != ucc_mc_reduce_req_test(task->reduce_req, mem_type)) {
+            return task->super.super.status;
+        }
+    reduce_done:
         if (task->send_posted < size) {
             /* printf("PROGRESS: rank %d, sendto %d, len %zd, inbi %d, buf %p\n", */
                    /* rank, sendto, block_count * dt_size, inbi, inbuf[2]); */
