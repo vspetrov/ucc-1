@@ -52,7 +52,7 @@ TestAllgather::TestAllgather(size_t _msgsize, ucc_test_mpi_inplace_t _inplace,
     args.src.info.datatype = TEST_DT;
     args.src.info.mem_type = _mt;
     args.dst.info.buffer   = rbuf;
-    args.dst.info.count    = count;
+    args.dst.info.count    = count*size;
     args.dst.info.datatype = TEST_DT;
     args.dst.info.mem_type = _mt;
     UCC_CHECK_SKIP(ucc_collective_init(&args, &req, team.team), test_skip);
@@ -60,7 +60,7 @@ TestAllgather::TestAllgather(size_t _msgsize, ucc_test_mpi_inplace_t _inplace,
 
 ucc_status_t TestAllgather::check()
 {
-    size_t       count = args.dst.info.count;
+    size_t       count = args.src.info.count;
     MPI_Datatype dt    = ucc_dt_to_mpi(TEST_DT);
     int          size;
 
