@@ -48,7 +48,9 @@ typedef struct ucc_tl_ucp_task {
         struct {
             void                   *scratch;
             ucc_mc_buffer_header_t *scratch_mc_header;
-            int                     backward;
+            ucc_ep_map_t            inv_map;
+            int                     n_frags;
+            int                     frag;
         } reduce_scatter_ring;
         struct {
             ucc_ep_map_t            inv_map;
