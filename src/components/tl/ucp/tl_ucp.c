@@ -92,6 +92,33 @@ static ucc_config_field_t ucc_tl_ucp_lib_config_table[] = {
      ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_kn_seq),
      UCC_CONFIG_TYPE_UINT},
 
+    {"ALLREDUCE_SRA_RING_FRAG_THRESH", "inf",
+     "Threshold to enable fragmentation and pipelining of SRA RING allreduce alg",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_ring_frag_thresh),
+     UCC_CONFIG_TYPE_MEMUNITS},
+
+    {"ALLREDUCE_SRA_RING_FRAG_SIZE", "inf",
+     "Maximum allowed fragment size of SRA RING algorithm",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_ring_frag_size),
+     UCC_CONFIG_TYPE_MEMUNITS},
+
+    {"ALLREDUCE_SRA_RING_N_FRAGS", "2",
+     "Number of fragments each allreduce is split into when SRA RING alg is used\n"
+     "The actual number of fragments can be larger if fragment size exceeds\n"
+     "ALLREDUCE_SRA_RING_FRAG_SIZE",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_ring_n_frags),
+     UCC_CONFIG_TYPE_UINT},
+
+    {"ALLREDUCE_SRA_RING_PIPELINE_DEPTH", "2",
+     "Number of fragments simultaneously progressed by the SRA RING alg",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_ring_pipeline_depth),
+     UCC_CONFIG_TYPE_UINT},
+
+    {"ALLREDUCE_SRA_RING_SEQUENTIAL", "0",
+     "Type of pipelined schedule for SRA RING alg (sequential/parallel)",
+     ucc_offsetof(ucc_tl_ucp_lib_config_t, allreduce_sra_ring_seq),
+     UCC_CONFIG_TYPE_UINT},
+
     {NULL}};
 
 static ucs_config_field_t ucc_tl_ucp_context_config_table[] = {

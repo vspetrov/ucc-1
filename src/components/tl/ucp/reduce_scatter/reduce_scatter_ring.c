@@ -57,8 +57,8 @@ ucc_tl_ucp_reduce_scatter_ring_progress(ucc_coll_task_t *coll_task)
     size_t                 count     = args->src.info.count;
     ucc_datatype_t         dt        = args->src.info.datatype;
     size_t                 dt_size   = ucc_dt_size(dt);
-    ucc_rank_t             size      = team->size;
-    ucc_rank_t             rank      = team->rank;
+    ucc_rank_t             size      = task->subset.map.ep_num;
+    ucc_rank_t             rank      = task->subset.myrank;
     ucc_rank_t             sendto     = (rank + 1) % size;
     ucc_rank_t             recvfrom   = (rank - 1 + size) % size;
     ucc_rank_t         split_rank, prevblock;
@@ -101,18 +101,24 @@ ucc_tl_ucp_reduce_scatter_ring_progress(ucc_coll_task_t *coll_task)
 
         /* printf("reduce inbi %d, offset %zd count %zd\n", */
                /* inbi ^ 0x1, block_offset, block_count); */
-        if (UCC_OK != (status = ucc_dt_reduce_multi_nb(
-                           inbuf[inbi ^ 0x1], PTR_OFFSET(sbuf, block_offset * dt_size),
-                           inbuf[2], 1, block_count, 0, dt,
-                           mem_type, args, task->super.ee, &task->reduce_req))) {
-            tl_error(UCC_TASK_LIB(task), "failed to perform dt reduction");
-            task->super.super.status = status;
-            return status;
-        }
-        if (UCC_OK != ucc_mc_reduce_req_test(task->reduce_req, mem_type)) {
-            return task->super.super.status;
+        if (1) {
+            if (UCC_OK != (status = ucc_dt_reduce_multi_nb(
+                               inbuf[inbi ^ 0x1], PTR_OFFSET(sbuf, block_offset * dt_size),
+                               inbuf[2], 1, block_count, 0, dt,
+                               mem_type, args, task->super.ee, &task->reduce_req))) {
+                tl_error(UCC_TASK_LIB(task), "failed to perform dt reduction");
+                task->super.super.status = status;
+                return status;
+            }
+            if (UCC_OK != ucc_mc_reduce_req_test(task->reduce_req, mem_type)) {
+                return task->super.super.status;
+            }
         }
     reduce_done:
+        step = task->send_posted;
+        prevblock = (rank + size - step) % size;
+        block_count = ((prevblock < split_rank)? early_segcount : late_segcount);
+
         if (task->send_posted < size) {
             /* printf("PROGRESS: rank %d, sendto %d, len %zd, inbi %d, buf %p\n", */
                    /* rank, sendto, block_count * dt_size, inbi, inbuf[2]); */
@@ -148,8 +154,8 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_ring_start(ucc_coll_task_t *coll_task)
     ucc_tl_ucp_task_t *task  = ucc_derived_of(coll_task, ucc_tl_ucp_task_t);
     ucc_coll_args_t   *args  = &coll_task->args;
     ucc_tl_ucp_team_t *team  = TASK_TEAM(task);
-    ucc_rank_t         size  = team->size;
-    ucc_rank_t         rank      = team->rank;
+    ucc_rank_t         size  = task->subset.map.ep_num;
+    ucc_rank_t         rank      = task->subset.myrank;
     ucc_rank_t         sendto     = (rank + 1) % size;
     ucc_rank_t         recvfrom   = (rank - 1 + size) % size;
     size_t             count   = args->src.info.count;
@@ -163,6 +169,8 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_ring_start(ucc_coll_task_t *coll_task)
     void *sbuf = coll_task->args.src.info.buffer;
     void *inbuf[3];
 
+    /* task->super.super.status = UCC_OK; */
+    /* return ucc_task_complete(coll_task); */
     task->super.super.status = UCC_INPROGRESS;
     ucc_tl_ucp_task_reset(task);
     sendto   = ucc_ep_map_eval(task->subset.map, sendto);
@@ -178,7 +186,6 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_ring_start(ucc_coll_task_t *coll_task)
 
     ucc_assert(task->send_posted == 0);
     inbi = task->send_posted % 2;
-
 
     rlen = GET_RECV_BLOCK_LEN(rank, size, task->send_posted, split_rank, early_segcount, late_segcount);
 

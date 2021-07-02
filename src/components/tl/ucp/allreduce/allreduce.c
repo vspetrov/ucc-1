@@ -20,6 +20,11 @@ ucc_base_coll_alg_info_t
              .name = "sra_knomial",
              .desc = "recursive k-nomial scatter-reduce followed by k-nomial "
                      "allgather (bw oriented alg)"},
+        [UCC_TL_UCP_ALLREDUCE_ALG_SRA_RING] =
+            {.id   = UCC_TL_UCP_ALLREDUCE_ALG_SRA_RING,
+             .name = "sra_ring",
+             .desc = "ring scatter-reduce followed by ring "
+                     "allgather (bw oriented alg)"},
         [UCC_TL_UCP_ALLREDUCE_ALG_LAST] = {
             .id = 0, .name = NULL, .desc = NULL}};
 

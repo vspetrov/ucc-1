@@ -103,6 +103,7 @@ ucc_status_t ucc_tl_ucp_allgather_ring_start(ucc_coll_task_t *coll_task)
     ucc_status_t       status;
 
     task->super.super.status     = UCC_INPROGRESS;
+    ucc_tl_ucp_task_reset(task);
     if (!UCC_IS_INPLACE(coll_task->args)) {
         size_t early_segcount, late_segcount, split_rank, block_count, block_offset;
         ucc_rank_t rank = task->subset.myrank;

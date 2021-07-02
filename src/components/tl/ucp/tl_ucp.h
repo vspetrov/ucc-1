@@ -40,6 +40,11 @@ typedef struct ucc_tl_ucp_lib_config {
     uint32_t            allreduce_sra_kn_seq;
     size_t              allreduce_sra_kn_frag_thresh;
     size_t              allreduce_sra_kn_frag_size;
+    uint32_t            allreduce_sra_ring_n_frags;
+    uint32_t            allreduce_sra_ring_pipeline_depth;
+    uint32_t            allreduce_sra_ring_seq;
+    size_t              allreduce_sra_ring_frag_thresh;
+    size_t              allreduce_sra_ring_frag_size;
 } ucc_tl_ucp_lib_config_t;
 
 typedef struct ucc_tl_ucp_context_config {
