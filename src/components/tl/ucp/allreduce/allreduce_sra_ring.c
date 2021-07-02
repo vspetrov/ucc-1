@@ -15,15 +15,7 @@
 #include "core/ucc_mc.h"
 #include "../reduce_scatter/reduce_scatter.h"
 #include "../allgather/allgather.h"
-
-#define COMPUTE_BLOCKCOUNT(_count, _num_blocks, _split_index,           \
-                           _early_block_count, _late_block_count) do{   \
-        _early_block_count = _late_block_count = _count / _num_blocks;  \
-        _split_index = _count % _num_blocks;                            \
-        if (0 != _split_index) {                                        \
-            _early_block_count = _early_block_count + 1;                \
-        }                                                               \
-    } while(0)
+#include "coll_patterns/ring.h"
 
 ucc_status_t ucc_tl_ucp_allreduce_sra_ring_start(ucc_coll_task_t *coll_task)
 {
@@ -71,12 +63,9 @@ ucc_status_t ucc_tl_ucp_allreduce_sra_ring_setup_frag(ucc_schedule_pipelined_t *
         offset -= left - frag_num;
     }
 
-    size_t early_segcount, late_segcount, split_rank, block_offset;
-    ucc_rank_t rank = team->rank; //todo subsets
-    COMPUTE_BLOCKCOUNT(frag_count, team->size, split_rank, early_segcount, late_segcount);
+    size_t block_offset;
 
-    block_offset = ((rank < split_rank)? (rank * early_segcount) :
-                    (rank * late_segcount + split_rank));
+    block_offset = ucc_ring_block_offset(frag_count, team->size, team->rank);
 
     targs = &frag->tasks[0]->args; //REDUCE_SCATTER
     targs->src.info.buffer = PTR_OFFSET(args->src.info.buffer, offset * dt_size);
@@ -93,67 +82,6 @@ ucc_status_t ucc_tl_ucp_allreduce_sra_ring_setup_frag(ucc_schedule_pipelined_t *
     return UCC_OK;
 }
 
-static uint64_t dgx_map8(uint64_t ep, void *cb_ctx) {
-    int reverse = (int)(uintptr_t)cb_ctx;
-    if (reverse) {
-        ep = (8 - ep) % 8;
-    }
-    switch(ep) {
-    case 0:
-        return 0;
-    case 1:
-        return 3;
-    case 2:
-        return 2;
-    case 3:
-        return 1;
-    case 4:
-        return 5;
-    case 5:
-        return 6;
-    case 6:
-        return 7;
-    case 7:
-        return 4;
-    }
-    return 0;
-}
-
-static uint64_t dgx_map8_inv(uint64_t ep, void *cb_ctx) {
-    int reverse = (int)(uintptr_t)cb_ctx;
-    uint64_t r;
-    switch(ep) {
-    case 0:
-        r = 0;
-        break;
-    case 1:
-        r = 3;
-        break;
-    case 2:
-        r = 2;
-        break;
-    case 3:
-        r = 1;
-        break;
-    case 4:
-        r = 7;
-        break;
-    case 5:
-        r = 4;
-        break;
-    case 6:
-        r = 5;
-        break;
-    case 7:
-        r = 6;
-        break;
-    }
-    if (reverse) {
-        r = (8 - r) % 8;
-    }
-
-    return r;
-}
 ucc_status_t
 ucc_tl_ucp_allreduce_sra_ring_init_frag(ucc_base_coll_args_t *coll_args,
                                            ucc_schedule_pipelined_t *sp, //NOLINT
@@ -172,18 +100,13 @@ ucc_tl_ucp_allreduce_sra_ring_init_frag(ucc_base_coll_args_t *coll_args,
        inplace allgather below we will need everything in dst since
        it is inplace */
 
+    /* args.args.src.info.count = */
+        /* ucc_ring_block_count(coll_args->args.src.info.count, tl_team->size, tl_team->rank); */
+
     args.args.dst.info.datatype = args.args.src.info.datatype;
     args.args.dst.info.mem_type = args.args.src.info.mem_type;
     args.args.dst.info.count = args.args.src.info.count;
 
-    size_t early_segcount, late_segcount, split_rank, block_offset, count;
-    ucc_rank_t rank = tl_team->rank; //todo subsets
-    count = args.args.src.info.count;
-    COMPUTE_BLOCKCOUNT(count, tl_team->size, split_rank, early_segcount, late_segcount);
-
-    block_offset = ((rank < split_rank)? (rank * early_segcount) :
-                    (rank * late_segcount + split_rank)) * ucc_dt_size(args.args.dst.info.datatype);
-    args.args.dst.info.buffer = PTR_OFFSET(coll_args->args.dst.info.buffer, block_offset);
 
     /* 1st step of allreduce: ring reduce_scatter */
     status = ucc_tl_ucp_reduce_scatter_ring_init(&args, team, &task);
@@ -191,17 +114,6 @@ ucc_tl_ucp_allreduce_sra_ring_init_frag(ucc_base_coll_args_t *coll_args,
         tl_error(UCC_TL_TEAM_LIB(tl_team),
                  "failed to init reduce_scatter_ring task");
         goto out;
-    }
-    int frag_id = ((ptrdiff_t)(frag_p) - (ptrdiff_t)sp->frags)/sizeof(*frag_p);
-    ucc_ep_map_t map;
-    map.type = UCC_EP_MAP_CB;
-    map.cb.cb = dgx_map8;
-    map.cb.cb_ctx = (void*)(uintptr_t)(frag_id % 2);
-    map.ep_num = tl_team->size;
-    if (1) {
-        ucc_derived_of(task, ucc_tl_ucp_task_t)->subset.map    = map;
-        ucc_derived_of(task, ucc_tl_ucp_task_t)->subset.myrank =
-            (ucc_rank_t)dgx_map8_inv(rank, map.cb.cb_ctx);
     }
     task->n_deps = 1;
     ucc_schedule_add_task(schedule, task);
@@ -213,17 +125,11 @@ ucc_tl_ucp_allreduce_sra_ring_init_frag(ucc_base_coll_args_t *coll_args,
      to completion event of reduce_scatter task. */
     args.args.mask |= UCC_COLL_ARGS_FIELD_FLAGS;
     args.args.flags |= UCC_COLL_ARGS_FLAG_IN_PLACE;
-    args.args.dst.info.buffer = coll_args->args.dst.info.buffer;
     status = ucc_tl_ucp_allgather_ring_init(&args, team, &task);
     if (UCC_OK != status) {
         tl_error(UCC_TL_TEAM_LIB(tl_team),
                  "failed to init allgather_ring task");
         goto out;
-    }
-    if (1) {
-        ucc_derived_of(task, ucc_tl_ucp_task_t)->subset.map    = map;
-        ucc_derived_of(task, ucc_tl_ucp_task_t)->subset.myrank =
-                        (ucc_rank_t)dgx_map8_inv(rank, map.cb.cb_ctx);
     }
     task->n_deps = 1;
     ucc_schedule_add_task(schedule, task);

@@ -162,6 +162,11 @@ ucc_status_t ucc_tl_ucp_allgather_ring_init_impl(ucc_base_coll_args_t *coll_args
 ucc_status_t ucc_tl_ucp_allgather_ring_sched_post(ucc_coll_task_t *coll_task)
 {
     ucc_schedule_t *schedule = ucc_derived_of(coll_task, ucc_schedule_t);
+    int i;
+    for (i = 0 ; i < schedule->n_tasks; i++) {
+        schedule->tasks[i]->args.src = schedule->super.args.src;
+        schedule->tasks[i]->args.dst = schedule->super.args.dst;
+    }
     return ucc_schedule_start(schedule);
 }
 
@@ -179,7 +184,7 @@ ucc_status_t ucc_tl_ucp_allgather_ring_init(ucc_base_coll_args_t *coll_args,
                                             ucc_base_team_t *     team,
                                             ucc_coll_task_t **    task_h)
 {
-    const int n_subsets = 3;
+    int n_subsets = 3;
     ucc_tl_ucp_team_t *tl_team = ucc_derived_of(team, ucc_tl_ucp_team_t);
     ucc_coll_task_t *ctask;
     ucc_status_t status;
@@ -202,7 +207,7 @@ ucc_status_t ucc_tl_ucp_allgather_ring_init(ucc_base_coll_args_t *coll_args,
 
     subsets[2].myrank = ucc_ep_map_eval(subsets[2].map, tl_team->rank);
 
-
+    n_subsets = 1;
     for (i = 0; i < n_subsets; i++) {
         status = ucc_tl_ucp_allgather_ring_init_impl(coll_args, team, &ctask,
                                                      subsets[i], 1, n_subsets, i);
