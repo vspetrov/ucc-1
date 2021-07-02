@@ -14,6 +14,19 @@
 #include "utils/ucc_coll_utils.h"
 #include "reduce_scatter.h"
 
+static inline ucc_rank_t ring_rank(ucc_tl_ucp_task_t *task, ucc_rank_t rank) {
+    ucc_rank_t r = task->reduce_scatter_ring.backward ?
+        task->subset.map.ep_num - rank - 1 : rank;
+    return ucc_ep_map_eval(task->subset.map, r);
+}
+
+static inline ucc_rank_t my_ring_rank(ucc_tl_ucp_task_t *task) {
+    return task->reduce_scatter_ring.backward ?
+        task->subset.map.ep_num - task->subset.myrank - 1:
+        task->subset.myrank;
+}
+
+
 #define COMPUTE_BLOCKCOUNT(_count, _num_blocks, _split_index,           \
                            _early_block_count, _late_block_count) do{   \
         _early_block_count = _late_block_count = _count / _num_blocks;  \
@@ -58,7 +71,7 @@ ucc_tl_ucp_reduce_scatter_ring_progress(ucc_coll_task_t *coll_task)
     ucc_datatype_t         dt        = args->src.info.datatype;
     size_t                 dt_size   = ucc_dt_size(dt);
     ucc_rank_t             size      = task->subset.map.ep_num;
-    ucc_rank_t             rank      = task->subset.myrank;
+    ucc_rank_t             rank      = my_ring_rank(task);
     ucc_rank_t             sendto     = (rank + 1) % size;
     ucc_rank_t             recvfrom   = (rank - 1 + size) % size;
     ucc_rank_t         split_rank, prevblock;
@@ -68,8 +81,8 @@ ucc_tl_ucp_reduce_scatter_ring_progress(ucc_coll_task_t *coll_task)
     void *inbuf[3];
 
 
-    sendto   = ucc_ep_map_eval(task->subset.map, sendto);
-    recvfrom = ucc_ep_map_eval(task->subset.map, recvfrom);
+    sendto   =ring_rank(task, sendto);
+    recvfrom = ring_rank(task, recvfrom);
 
     COMPUTE_BLOCKCOUNT(count, size, split_rank, early_segcount, late_segcount);
     max_real_segsize = early_segcount * dt_size;
@@ -155,7 +168,7 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_ring_start(ucc_coll_task_t *coll_task)
     ucc_coll_args_t   *args  = &coll_task->args;
     ucc_tl_ucp_team_t *team  = TASK_TEAM(task);
     ucc_rank_t         size  = task->subset.map.ep_num;
-    ucc_rank_t         rank      = task->subset.myrank;
+    ucc_rank_t         rank      = my_ring_rank(task);
     ucc_rank_t         sendto     = (rank + 1) % size;
     ucc_rank_t         recvfrom   = (rank - 1 + size) % size;
     size_t             count   = args->src.info.count;
@@ -173,8 +186,8 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_ring_start(ucc_coll_task_t *coll_task)
     /* return ucc_task_complete(coll_task); */
     task->super.super.status = UCC_INPROGRESS;
     ucc_tl_ucp_task_reset(task);
-    sendto   = ucc_ep_map_eval(task->subset.map, sendto);
-    recvfrom = ucc_ep_map_eval(task->subset.map, recvfrom);
+    sendto   =ring_rank(task, sendto);
+    recvfrom = ring_rank(task, recvfrom);
 
     COMPUTE_BLOCKCOUNT(count, size, split_rank, early_segcount, late_segcount);
     max_real_segsize = early_segcount * dt_size;
@@ -209,7 +222,6 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_ring_start(ucc_coll_task_t *coll_task)
         ucc_tl_ucp_send_nb(PTR_OFFSET(sbuf, block_offset * dt_size),
                            block_count * dt_size, mem_type, sendto, team, task),
         task, out);
-
 
     inbi = task->send_posted % 2;
 
@@ -268,6 +280,7 @@ ucc_tl_ucp_reduce_scatter_ring_init(ucc_base_coll_args_t *coll_args,
     task->super.progress = ucc_tl_ucp_reduce_scatter_ring_progress;
     task->super.finalize = ucc_tl_ucp_reduce_scatter_ring_finalize;
     task->super.ee       = coll_args->ee;
+    task->reduce_scatter_ring.backward = 1;
     COMPUTE_BLOCKCOUNT(count, size, split_rank, early_segcount, late_segcount);
     max_segcount = early_segcount;
     max_real_segsize = max_segcount * dt_size;

@@ -32,7 +32,7 @@ static inline int ucc_tl_ucp_allgather_alg_from_str(const char *str)
 }
 
 ucc_status_t ucc_tl_ucp_allgather_init(ucc_tl_ucp_task_t *task);
-
+ucc_status_t ucc_tl_ucp_allgather_ring_finalize(ucc_coll_task_t *coll_task);
 ucc_status_t ucc_tl_ucp_allgather_ring_init(ucc_base_coll_args_t *coll_args,
                                             ucc_base_team_t *     team,
                                             ucc_coll_task_t **    task_h);
@@ -48,4 +48,11 @@ ucc_status_t ucc_tl_ucp_allgather_knomial_init(ucc_base_coll_args_t *coll_args,
 ucc_status_t ucc_tl_ucp_allgather_knomial_init_r(
     ucc_base_coll_args_t *coll_args, ucc_base_team_t *team,
     ucc_coll_task_t **task_h, ucc_kn_radix_t radix);
+
+ucc_status_t ucc_tl_ucp_allgather_ring_init_impl(ucc_base_coll_args_t *coll_args,
+                                                 ucc_base_team_t *     team,
+                                                 ucc_coll_task_t **    task_h,
+                                                 ucc_tl_team_subset_t subset,
+                                                 int keep_order, int n_frags, int frag);
+
 #endif

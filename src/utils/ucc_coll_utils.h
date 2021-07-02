@@ -104,4 +104,7 @@ static inline ucc_rank_t ucc_ep_map_eval(ucc_ep_map_t map, ucc_rank_t rank)
     return r;
 }
 
+ucc_ep_map_t ucc_ep_map_create_reverse(ucc_rank_t size);
+ucc_status_t ucc_ep_map_create_inverse(ucc_ep_map_t map, ucc_ep_map_t *inv_map);
+void ucc_ep_map_destroy_inverse(ucc_ep_map_t *inv_map);
 #endif

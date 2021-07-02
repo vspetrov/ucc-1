@@ -66,8 +66,7 @@ ucc_status_t ucc_tl_ucp_service_allgather(ucc_base_team_t *team, void *sbuf, voi
                                           size_t msgsize, ucc_tl_team_subset_t subset,
                                           ucc_coll_task_t **task_p)
 {
-    ucc_tl_ucp_team_t *tl_team = ucc_derived_of(team, ucc_tl_ucp_team_t);
-    ucc_tl_ucp_task_t *task    = ucc_tl_ucp_get_task(tl_team);
+    ucc_tl_ucp_task_t *task;
     ucc_status_t status;
 
     int in_place = (sbuf ==
@@ -88,17 +87,17 @@ ucc_status_t ucc_tl_ucp_service_allgather(ucc_base_team_t *team, void *sbuf, voi
             .mem_type = UCC_MEMORY_TYPE_HOST
         }
     };
-    status = ucc_coll_task_init(&task->super, &args, team, 0);
+    ucc_base_coll_args_t bargs = {
+        .args = args,
+        .team = team->team
+    };
+    status = ucc_tl_ucp_allgather_ring_init_impl(&bargs, team, task_p, subset, 0, 1, 0);
+    task = ucc_derived_of(*task_p, ucc_tl_ucp_task_t);
     if (status != UCC_OK) {
         goto free_task;
     }
-    task->subset = subset;
     task->tag  = UCC_TL_UCP_SERVICE_TAG;
     task->n_polls = 10; // TODO need a var ?
-    task->super.post     = ucc_tl_ucp_allgather_ring_start;
-    task->super.progress = ucc_tl_ucp_allgather_ring_progress;
-    task->super.finalize = ucc_tl_ucp_coll_finalize;
-    *task_p = &task->super;
 
     status = ucc_tl_ucp_allgather_ring_start(&task->super);
     if (status != UCC_OK) {

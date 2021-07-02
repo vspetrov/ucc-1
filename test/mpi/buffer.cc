@@ -123,7 +123,7 @@ ucc_status_t compare_buffers(void *_rst, void *expected, size_t count,
         status = memcmp(rst, expected, count*ucc_dt_size(dt)) ?
             UCC_ERR_NO_MESSAGE : UCC_OK;
     }
-
+    
     if (UCC_MEMORY_TYPE_HOST != mt) {
         UCC_CHECK(ucc_mc_free(rst_mc_header));
     }
