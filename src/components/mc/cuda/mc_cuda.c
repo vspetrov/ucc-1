@@ -222,7 +222,7 @@ static ucc_status_t ucc_mc_cuda_init(const ucc_mc_params_t *mc_params)
     /* create request pool */
     status = ucc_mpool_init(
         &ucc_mc_cuda.ee_mpool, 0, sizeof(ucc_ee_t), 0,
-        UCC_CACHE_LINE_SIZE, 3, UINT_MAX, &ucc_mc_cuda_ee_mpool_ops,
+        UCC_CACHE_LINE_SIZE, 6, UINT_MAX, &ucc_mc_cuda_ee_mpool_ops,
         UCC_THREAD_MULTIPLE, "CUDA reduction streams");
     if (status != UCC_OK) {
         mc_error(&ucc_mc_cuda.super, "failed to create reduction streams pool");

@@ -14,6 +14,7 @@
 #include "utils/ucc_coll_utils.h"
 #include "reduce_scatter.h"
 #include "coll_patterns/ring.h"
+#include "coll_patterns/dgx_rings.h"
 
 static inline ucc_status_t ucc_tl_ucp_test_ring(ucc_tl_ucp_task_t *task)
 {
@@ -58,10 +59,9 @@ ucc_tl_ucp_reduce_scatter_ring_progress(ucc_coll_task_t *coll_task)
     recvfrom = ucc_ep_map_eval(task->reduce_scatter_ring.inv_map, recvfrom);
     max_real_segsize = ucc_ring_block_count(count, size, 0) * dt_size;
     inbuf[0]         = task->reduce_scatter_ring.scratch;
-    if (size > 2) {
-        inbuf[1] = PTR_OFFSET(inbuf[0], max_real_segsize);
-        inbuf[2] = PTR_OFFSET(inbuf[1], max_real_segsize);
-    }
+    inbuf[1] = PTR_OFFSET(inbuf[0], max_real_segsize);
+    inbuf[2] = PTR_OFFSET(inbuf[1], max_real_segsize);
+
     if (task->reduce_req) {
         if (UCC_OK != ucc_mc_reduce_req_test(task->reduce_req, mem_type)) {
             return task->super.super.status;
@@ -249,11 +249,12 @@ ucc_status_t
 ucc_tl_ucp_reduce_scatter_ring_finalize(ucc_coll_task_t *coll_task)
 {
     ucc_tl_ucp_task_t *task      = ucc_derived_of(coll_task, ucc_tl_ucp_task_t);
-
+    ucc_memory_type_t  mem_type  = coll_task->args.src.info.mem_type;
     if (task->reduce_scatter_ring.inv_map.type != UCC_EP_MAP_FULL) {
         ucc_ep_map_destroy_inverse(&task->reduce_scatter_ring.inv_map);
     }
-
+    ucc_mc_ee_put(task->super.ee, (mem_type == UCC_MEMORY_TYPE_CUDA) ?
+                      UCC_EE_CUDA_STREAM : UCC_EE_CPU_THREAD);
     ucc_mc_free(task->reduce_scatter_ring.scratch_mc_header);
     return ucc_tl_ucp_coll_finalize(coll_task);
 }
@@ -284,7 +285,10 @@ ucc_tl_ucp_reduce_scatter_ring_init_impl(ucc_base_coll_args_t *coll_args,
     task->super.post     = ucc_tl_ucp_reduce_scatter_ring_start;
     task->super.progress = ucc_tl_ucp_reduce_scatter_ring_progress;
     task->super.finalize = ucc_tl_ucp_reduce_scatter_ring_finalize;
-    task->super.ee       = coll_args->ee;
+    ucc_mc_ee_get(&task->super.ee, (mem_type == UCC_MEMORY_TYPE_CUDA) ?
+                  UCC_EE_CUDA_STREAM : UCC_EE_CPU_THREAD);
+
+
     task->subset         = subset;
     if (task->subset.map.type != UCC_EP_MAP_FULL) {
         status = ucc_ep_map_create_inverse(task->subset.map,
@@ -336,32 +340,32 @@ ucc_status_t ucc_tl_ucp_reduce_scatter_ring_init(ucc_base_coll_args_t *coll_args
                                             ucc_base_team_t *     team,
                                             ucc_coll_task_t **    task_h)
 {
-    int n_subsets = 3;
+    int n_subsets = N_DGX_RINGS;
     ucc_tl_ucp_team_t *tl_team = ucc_derived_of(team, ucc_tl_ucp_team_t);
     ucc_coll_task_t *ctask;
     ucc_status_t status;
-    ucc_tl_team_subset_t subsets[n_subsets];
+    ucc_tl_team_subset_t s;
     ucc_schedule_t *schedule = ucc_tl_ucp_get_schedule(&coll_args->args, tl_team);
     int i;
 
-    subsets[0].myrank = tl_team->rank;
-    subsets[0].map.type = UCC_EP_MAP_FULL;
-    subsets[0].map.ep_num = tl_team->size;
+    /* subsets[0].myrank = tl_team->rank; */
+    /* subsets[0].map.type = UCC_EP_MAP_FULL; */
+    /* subsets[0].map.ep_num = tl_team->size; */
 
-    subsets[1].map = ucc_ep_map_create_reverse(tl_team->size);
-    subsets[1].myrank = ucc_ep_map_eval(subsets[1].map, tl_team->rank);
+    /* subsets[1].map = ucc_ep_map_create_reverse(tl_team->size); */
+    /* subsets[1].myrank = ucc_ep_map_eval(subsets[1].map, tl_team->rank); */
 
-    static ucc_rank_t array[8] = {1, 4, 2, 7, 5, 0, 6, 3};
-    subsets[2].map.type = UCC_EP_MAP_ARRAY;
-    subsets[2].map.ep_num = tl_team->size;
-    subsets[2].map.array.map = array;
-    subsets[2].map.array.elem_size = sizeof(ucc_rank_t);
-    subsets[2].myrank = ucc_ep_map_eval(subsets[2].map, tl_team->rank);
+    /* static ucc_rank_t array[8] = {1, 4, 2, 7, 5, 0, 6, 3}; */
+    /* subsets[2].map.type = UCC_EP_MAP_ARRAY; */
+    /* subsets[2].map.ep_num = tl_team->size; */
+    /* subsets[2].map.array.map = array; */
+    /* subsets[2].map.array.elem_size = sizeof(ucc_rank_t); */
+    /* subsets[2].myrank = ucc_ep_map_eval(subsets[2].map, tl_team->rank); */
 
-    n_subsets = 1;
     for (i = 0; i < n_subsets; i++) {
+        s = get_dgx_subset(i, tl_team->rank);
         status = ucc_tl_ucp_reduce_scatter_ring_init_impl(coll_args, team, &ctask,
-                                                          subsets[i], n_subsets, i);
+                                                          s, n_subsets, i);
         if (UCC_OK != status) {
             tl_error(UCC_TL_TEAM_LIB(tl_team), "failed to allocate ring task");
             return status;

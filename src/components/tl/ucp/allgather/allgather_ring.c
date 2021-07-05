@@ -13,6 +13,7 @@
 #include "utils/ucc_coll_utils.h"
 #include "core/ucc_mc.h"
 #include "coll_patterns/ring.h"
+#include "coll_patterns/dgx_rings.h"
 
 ucc_status_t ucc_tl_ucp_allgather_ring_finalize(ucc_coll_task_t *coll_task)
 {
@@ -184,33 +185,32 @@ ucc_status_t ucc_tl_ucp_allgather_ring_init(ucc_base_coll_args_t *coll_args,
                                             ucc_base_team_t *     team,
                                             ucc_coll_task_t **    task_h)
 {
-    int n_subsets = 3;
+    int n_subsets = N_DGX_RINGS;
     ucc_tl_ucp_team_t *tl_team = ucc_derived_of(team, ucc_tl_ucp_team_t);
     ucc_coll_task_t *ctask;
     ucc_status_t status;
-    ucc_tl_team_subset_t subsets[n_subsets];
+    ucc_tl_team_subset_t s;
     ucc_schedule_t *schedule = ucc_tl_ucp_get_schedule(&coll_args->args, tl_team);
     int i;
 
-    subsets[0].myrank = tl_team->rank;
-    subsets[0].map.type = UCC_EP_MAP_FULL;
-    subsets[0].map.ep_num = tl_team->size;
+    /* subsets[0].myrank = tl_team->rank; */
+    /* subsets[0].map.type = UCC_EP_MAP_FULL; */
+    /* subsets[0].map.ep_num = tl_team->size; */
 
-    subsets[1].map = ucc_ep_map_create_reverse(tl_team->size);
-    subsets[1].myrank = ucc_ep_map_eval(subsets[1].map, tl_team->rank);
+    /* subsets[1].map = ucc_ep_map_create_reverse(tl_team->size); */
+    /* subsets[1].myrank = ucc_ep_map_eval(subsets[1].map, tl_team->rank); */
 
-    static ucc_rank_t array[8] = {1, 4, 2, 7, 5, 0, 6, 3};
-    subsets[2].map.type = UCC_EP_MAP_ARRAY;
-    subsets[2].map.ep_num = tl_team->size;
-    subsets[2].map.array.map = array;
-    subsets[2].map.array.elem_size = sizeof(ucc_rank_t);
+    /* static ucc_rank_t array[8] = {1, 4, 2, 7, 5, 0, 6, 3}; */
+    /* subsets[2].map.type = UCC_EP_MAP_ARRAY; */
+    /* subsets[2].map.ep_num = tl_team->size; */
+    /* subsets[2].map.array.map = array; */
+    /* subsets[2].map.array.elem_size = sizeof(ucc_rank_t); */
+    /* subsets[2].myrank = ucc_ep_map_eval(subsets[2].map, tl_team->rank); */
 
-    subsets[2].myrank = ucc_ep_map_eval(subsets[2].map, tl_team->rank);
-
-    n_subsets = 1;
     for (i = 0; i < n_subsets; i++) {
+        s = get_dgx_subset(i, tl_team->rank);
         status = ucc_tl_ucp_allgather_ring_init_impl(coll_args, team, &ctask,
-                                                     subsets[i], 1, n_subsets, i);
+                                                     s, 1, n_subsets, i);
         if (UCC_OK != status) {
             tl_error(UCC_TL_TEAM_LIB(tl_team), "failed to allocate ring task");
             return status;
