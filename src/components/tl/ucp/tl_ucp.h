@@ -81,7 +81,22 @@ typedef struct ucc_tl_ucp_context {
 UCC_CLASS_DECLARE(ucc_tl_ucp_context_t, const ucc_base_context_params_t *,
                   const ucc_base_config_t *);
 
+#define MAX_RKEY_SIZE 256
+#define N_READY_ARRAYS  8
+typedef struct ready_array {
+    ucc_rank_t owner;
+    ucp_rkey_h rkey;
+    ucp_mem_h  memh;
+    char       packed_key[MAX_RKEY_SIZE];
+    uint32_t  *seq_num;
+} ready_array_t;
+
 typedef struct ucc_tl_ucp_task ucc_tl_ucp_task_t;
+typedef enum {
+    UCC_TL_UCP_TEAM_STATE_PRECONNECT,
+    UCC_TL_UCP_TEAM_STATE_RA_EXCHANGE,
+} ucc_tl_ucp_team_state_t;
+
 typedef struct ucc_tl_ucp_team {
     ucc_tl_team_t              super;
     ucc_status_t               status;
@@ -91,7 +106,10 @@ typedef struct ucc_tl_ucp_team {
     uint32_t                   scope;
     uint32_t                   scope_id;
     uint32_t                   seq_num;
+    ucc_tl_ucp_team_state_t    state;
     ucc_tl_ucp_task_t         *preconnect_task;
+    int                        n_ra;
+    ready_array_t              ra[N_READY_ARRAYS];
 } ucc_tl_ucp_team_t;
 UCC_CLASS_DECLARE(ucc_tl_ucp_team_t, ucc_base_context_t *,
                   const ucc_base_team_params_t *);

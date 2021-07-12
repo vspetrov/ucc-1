@@ -54,6 +54,10 @@ typedef struct ucc_tl_ucp_task {
             ucc_rank_t              dist;
             uint32_t                radix;
         } bcast_kn;
+        struct {
+            uint32_t *ready;
+            void     *put_req;
+        } alltoallv_imbalanced;
     };
 } ucc_tl_ucp_task_t;
 

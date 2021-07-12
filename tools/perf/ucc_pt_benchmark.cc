@@ -1,4 +1,6 @@
 #include <iomanip>
+#include <random>
+
 #include "ucc_pt_benchmark.h"
 #include "core/ucc_mc.h"
 #include "ucc_perftest.h"
@@ -79,10 +81,20 @@ ucc_status_t ucc_pt_benchmark::run_single_test(ucc_coll_args_t args,
     ucc_context_h ctx  = comm->get_context();
     ucc_status_t  st   = UCC_OK;
     ucc_coll_req_h req;
+    int rank;
+
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    time = std::chrono::nanoseconds::zero();
+    std::default_random_engine eng;
+    eng.seed((rank + 1)*123);
+    std::uniform_int_distribution<int> urd(0, 100000);
 
     UCCCHECK_GOTO(comm->barrier(), exit_err, st);
-    time = std::chrono::nanoseconds::zero();
+
     for (int i = 0; i < nwarmup + niter; i++) {
+
+        usleep(urd(eng));
+
         auto s = std::chrono::high_resolution_clock::now();
         UCCCHECK_GOTO(ucc_collective_init(&args, &req, team), exit_err, st);
         UCCCHECK_GOTO(ucc_collective_post(req), free_req, st);

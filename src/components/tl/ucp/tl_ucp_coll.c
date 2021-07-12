@@ -236,6 +236,8 @@ static inline int alg_id_from_str(ucc_coll_type_t coll_type, const char *str)
     switch (coll_type) {
     case UCC_COLL_TYPE_ALLREDUCE:
         return ucc_tl_ucp_allreduce_alg_from_str(str);
+    case UCC_COLL_TYPE_ALLTOALLV:
+        return ucc_tl_ucp_alltoallv_alg_from_str(str);
     default:
         break;
     }
@@ -260,6 +262,19 @@ ucc_status_t ucc_tl_ucp_alg_id_to_init(int alg_id, const char *alg_id_str,
             break;
         case UCC_TL_UCP_ALLREDUCE_ALG_SRA_KNOMIAL:
             *init = ucc_tl_ucp_allreduce_sra_knomial_init;
+            break;
+        default:
+            status = UCC_ERR_INVALID_PARAM;
+            break;
+        };
+        break;
+    case UCC_COLL_TYPE_ALLTOALLV:
+        switch (alg_id) {
+        case UCC_TL_UCP_ALLTOALLV_ALG_PAIRWISE:
+            *init = ucc_tl_ucp_alltoallv_pairwise_init;
+            break;
+        case UCC_TL_UCP_ALLTOALLV_ALG_IMBALANCED:
+            *init = ucc_tl_ucp_alltoallv_imbalanced_init;
             break;
         default:
             status = UCC_ERR_INVALID_PARAM;
