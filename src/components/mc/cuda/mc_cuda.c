@@ -204,7 +204,7 @@ static ucc_status_t ucc_mc_cuda_init(const ucc_mc_params_t *mc_params)
         cu_st = cuCtxGetDevice(&cu_dev);
         if (cu_st != CUDA_SUCCESS){
             cuGetErrorString(cu_st, &cu_err_st_str);
-            mc_debug(&ucc_mc_cuda.super, "cuCtxGetDevice() failed: %s",
+            mc_trace(&ucc_mc_cuda.super, "cuCtxGetDevice() failed: %s",
                      cu_err_st_str);
             mem_ops_attr = 0;
         } else {
@@ -267,7 +267,7 @@ static ucc_status_t ucc_mc_cuda_mem_alloc(ucc_mc_buffer_header_t **h_ptr,
     h->from_pool = 0;
     h->mt        = UCC_MEMORY_TYPE_CUDA;
     *h_ptr       = h;
-    mc_debug(&ucc_mc_cuda.super, "MC allocated %ld bytes with cudaMalloc", size);
+    mc_trace(&ucc_mc_cuda.super, "allocated %ld bytes with cudaMalloc", size);
     return UCC_OK;
 }
 
@@ -286,7 +286,7 @@ static ucc_status_t ucc_mc_cuda_mem_pool_alloc(ucc_mc_buffer_header_t **h_ptr,
         return UCC_ERR_NO_MEMORY;
     }
     *h_ptr = h;
-    mc_debug(&ucc_mc_cuda.super, "MC allocated %ld bytes from cuda mpool", size);
+    mc_trace(&ucc_mc_cuda.super, "allocated %ld bytes from cuda mpool", size);
     return UCC_OK;
 }
 
